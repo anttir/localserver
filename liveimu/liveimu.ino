@@ -1,6 +1,6 @@
 #include "Particle.h"
-
-#include "Adafruit_10DOF_IMU/Adafruit_10DOF_IMU.h"
+#include<Wire.h>
+//#include "Adafruit_10DOF_IMU/Adafruit_10DOF_IMU.h"
 
 SYSTEM_THREAD(ENABLED);
 
@@ -14,11 +14,14 @@ const unsigned long SEND_WAIT_MS = 40;
 // Sensors
 
 /* Assign a unique ID to the sensors */
-Adafruit_10DOF dof;
-Adafruit_LSM303_Accel_Unified accel(30301);
-Adafruit_LSM303_Mag_Unified mag(30302);
-Adafruit_BMP085_Unified bmp(18001);
-float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
+// Adafruit_10DOF dof;
+// Adafruit_LSM303_Accel_Unified accel(30301);
+// Adafruit_LSM303_Mag_Unified mag(30302);
+// Adafruit_BMP085_Unified bmp(18001);
+// float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
+
+const int MPU_addr=0x68;  // I2C address of the MPU-6050
+int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
 
 enum State { STATE_REQUEST, STATE_REQUEST_WAIT, STATE_CONNECT, STATE_SEND_DATA, STATE_RETRY_WAIT };
 State state = STATE_REQUEST;
@@ -34,7 +37,13 @@ void setup() {
 	Particle.function("devices", devicesHandler);
 
 	// Initialize sensors
-	sensorsInitialized = (accel.begin() && mag.begin() && bmp.begin());
+	// sensorsInitialized = (accel.begin() && mag.begin() && bmp.begin());
+	Wire.begin();
+	Wire.beginTransmission(MPU_addr);
+	Wire.write(0x6B);  // PWR_MGMT_1 register
+	Wire.write(0);     // set to zero (wakes up the MPU-6050)
+	Wire.endTransmission(true);
+
 }
 
 void loop() {
@@ -95,8 +104,39 @@ void loop() {
 		break;
 	}
 }
+void sendData(void){
+	Wire.beginTransmission(MPU_addr);
+	Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
+	Wire.endTransmission(false);
+	Wire.requestFrom(MPU_addr,14,true);  // request a total of 14 registers
+	AcX=Wire.read()<<8|Wire.read();  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)     
+	AcY=Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
+	AcZ=Wire.read()<<8|Wire.read();  // 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
+	Tmp=Wire.read()<<8|Wire.read();  // 0x41 (TEMP_OUT_H) & 0x42 (TEMP_OUT_L)
+	GyX=Wire.read()<<8|Wire.read();  // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
+	GyY=Wire.read()<<8|Wire.read();  // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
+	GyZ=Wire.read()<<8|Wire.read();  // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
 
-void sendData(void) {
+	Serial.print(","); Serial.print(GyX);
+	Serial.print(","); Serial.print(GyY);
+	Serial.print(","); Serial.println(GyZ);
+	// Use printf and manually added a \n here. The server code splits on LF only, and using println/
+	// printlnf adds both a CR and LF. It's easier to parse with LF only, and it saves a byte when
+	// transmitting.
+	client.printf("%.3f,%.3f,%.3f,%.3f,%.2f,%.1f\n",
+			AcX, AcY, AcZ,
+			GyX, GyY, Tmp/340.00+36.53);
+
+	// roll,pitch,heading,altitude,pressure,temperature
+	// Example:
+	// 0.000,-0.449,-49.091,263.317,982.02,27.5
+	// -0.224,-0.224,-48.955,262.719,982.09,27.5
+	// 0.000,-0.449,-48.704,262.719,982.09,27.5
+	// 0.000,-0.449,-48.704,262.890,982.07,27.5
+}
+
+
+void sendData_old(void) {
 	// Called periodically when connected via TCP to the server to update data.
 	// Unlike Particle.publish you can push a very large amount of data through this connection,
 	// theoretically up to about 800 Kbytes/sec, but really you should probably shoot for something
