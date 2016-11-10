@@ -8,7 +8,7 @@
             "type": "node",
             "request": "launch",
             "name": "Launch Program",
-            "program": "${workspaceRoot}/livegraph.js",
+            "program": "${workspaceRoot}/liveimu.js",
             "cwd": "${workspaceRoot}"
         },
         {

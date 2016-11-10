@@ -1,7 +1,6 @@
 
 // Data samples are stored here
 var dataSet = [];
-
 var rowsToKeep = 40;
 
 

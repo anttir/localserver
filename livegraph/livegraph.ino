@@ -17,6 +17,8 @@ IPAddress serverAddr;
 int serverPort;
 char nonce[34];
 TCPClient client;
+char myIpString[24];
+int statusPublished = 0;
 
 void setup() {
 	Serial.begin(9600);
@@ -24,12 +26,22 @@ void setup() {
 }
 
 void loop() {
+	if (statusPublished == 0 && Particle.connected()) {
+        Particle.variable("status", "connected");	
+        IPAddress myIp = WiFi.localIP();
+        //Particle.variable("address", myIpString);	
+        //Particle.variable("address", String(WiFi.localIP()));	
+        sprintf(myIpString, "%d.%d.%d.%d\0", myIp[0], myIp[1], myIp[2], myIp[3]);
+        statusPublished = 1;
+	}
+
 
 	switch(state) {
 	case STATE_REQUEST:
 		if (Particle.connected()) {
 			Serial.println("sending devicesRequest");
-			Particle.publish("devicesRequest", WiFi.localIP().toString().c_str(), 10, PRIVATE);
+			Particle.publish("devicesRequest", myIpString, 10, PRIVATE);
+			// Particle.publish("devicesRequest", WiFi.localIP().toString().c_str(), 10, PRIVATE);
 			state = STATE_REQUEST_WAIT;
 			stateTime = millis();
 		}

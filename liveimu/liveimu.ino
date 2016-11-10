@@ -1,5 +1,7 @@
+#include "MPU6050/I2Cdev.h"
+#include "MPU6050/MPU6050.h"
 #include "Particle.h"
-#include<Wire.h>
+//#include "Wire.h"
 //#include "Adafruit_10DOF_IMU/Adafruit_10DOF_IMU.h"
 
 SYSTEM_THREAD(ENABLED);
@@ -13,15 +15,29 @@ const unsigned long SEND_WAIT_MS = 40;
 
 // Sensors
 
-/* Assign a unique ID to the sensors */
-// Adafruit_10DOF dof;
-// Adafruit_LSM303_Accel_Unified accel(30301);
-// Adafruit_LSM303_Mag_Unified mag(30302);
-// Adafruit_BMP085_Unified bmp(18001);
-// float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
 
-const int MPU_addr=0x68;  // I2C address of the MPU-6050
-int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
+// Arduino Wire library is required if I2Cdev I2CDEV_ARDUINO_WIRE implementation
+// is used in I2Cdev.h
+#if (I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE) && !defined (SPARK)
+    #include "Wire.h"
+#endif
+
+// class default I2C address is 0x68
+// specific I2C addresses may be passed as a parameter here
+// AD0 low = 0x68 (default for InvenSense evaluation board)
+// AD0 high = 0x69
+MPU6050 accelgyro;
+//MPU6050 accelgyro(0x69); // <-- use for AD0 high
+
+int16_t ax, ay, az;
+int16_t gx, gy, gz;
+
+#if defined (SPARK)
+#define LED_PIN D7 // (Spark Core is D7)
+#else
+#define LED_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
+#endif
+bool blinkState = false;
 
 enum State { STATE_REQUEST, STATE_REQUEST_WAIT, STATE_CONNECT, STATE_SEND_DATA, STATE_RETRY_WAIT };
 State state = STATE_REQUEST;
@@ -33,16 +49,53 @@ TCPClient client;
 bool sensorsInitialized;
 
 void setup() {
-	Serial.begin(9600);
+    // join I2C bus (I2Cdev library doesn't do this automatically)
+    #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
+        Wire.begin();
+    #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
+        Fastwire::setup(400, true);
+    #endif
+
+    // initialize serial communication
+    // (38400 chosen because it works as well at 8MHz as it does at 16MHz, but
+    // it's really up to you depending on your project)
+    Serial.begin(9600);
+
 	Particle.function("devices", devicesHandler);
 
-	// Initialize sensors
-	// sensorsInitialized = (accel.begin() && mag.begin() && bmp.begin());
-	Wire.begin();
-	Wire.beginTransmission(MPU_addr);
-	Wire.write(0x6B);  // PWR_MGMT_1 register
-	Wire.write(0);     // set to zero (wakes up the MPU-6050)
-	Wire.endTransmission(true);
+    // initialize device
+    Serial.println("Initializing I2C devices...");
+    accelgyro.initialize();
+
+    // verify connection
+    Serial.println("Testing device connections...");
+    Serial.println(accelgyro.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
+
+    // use the code below to change accel/gyro offset values
+    /*
+    Serial.println("Updating internal sensor offsets...");
+    // -76	-2359	1688	0	0	0
+    Serial.print(accelgyro.getXAccelOffset()); Serial.print("\t"); // -76
+    Serial.print(accelgyro.getYAccelOffset()); Serial.print("\t"); // -2359
+    Serial.print(accelgyro.getZAccelOffset()); Serial.print("\t"); // 1688
+    Serial.print(accelgyro.getXGyroOffset()); Serial.print("\t"); // 0
+    Serial.print(accelgyro.getYGyroOffset()); Serial.print("\t"); // 0
+    Serial.print(accelgyro.getZGyroOffset()); Serial.print("\t"); // 0
+    Serial.print("\n");
+    accelgyro.setXGyroOffset(220);
+    accelgyro.setYGyroOffset(76);
+    accelgyro.setZGyroOffset(-85);
+    Serial.print(accelgyro.getXAccelOffset()); Serial.print("\t"); // -76
+    Serial.print(accelgyro.getYAccelOffset()); Serial.print("\t"); // -2359
+    Serial.print(accelgyro.getZAccelOffset()); Serial.print("\t"); // 1688
+    Serial.print(accelgyro.getXGyroOffset()); Serial.print("\t"); // 0
+    Serial.print(accelgyro.getYGyroOffset()); Serial.print("\t"); // 0
+    Serial.print(accelgyro.getZGyroOffset()); Serial.print("\t"); // 0
+    Serial.print("\n");
+    */
+
+    // configure Arduino LED for
+    pinMode(LED_PIN, OUTPUT);
 
 }
 
@@ -105,89 +158,48 @@ void loop() {
 	}
 }
 void sendData(void){
-	Wire.beginTransmission(MPU_addr);
-	Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
-	Wire.endTransmission(false);
-	Wire.requestFrom(MPU_addr,14,true);  // request a total of 14 registers
-	AcX=Wire.read()<<8|Wire.read();  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)     
-	AcY=Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
-	AcZ=Wire.read()<<8|Wire.read();  // 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
-	Tmp=Wire.read()<<8|Wire.read();  // 0x41 (TEMP_OUT_H) & 0x42 (TEMP_OUT_L)
-	GyX=Wire.read()<<8|Wire.read();  // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
-	GyY=Wire.read()<<8|Wire.read();  // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
-	GyZ=Wire.read()<<8|Wire.read();  // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
+    // read raw accel/gyro measurements from device
+    accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 
-	Serial.print(","); Serial.print(GyX);
-	Serial.print(","); Serial.print(GyY);
-	Serial.print(","); Serial.println(GyZ);
+    // these methods (and a few others) are also available
+    //accelgyro.getAcceleration(&ax, &ay, &az);
+    //accelgyro.getRotation(&gx, &gy, &gz);
+
+    // display tab-separated accel/gyro x/y/z values
+    //Serial.print("a/g:\t");
+    Serial.print(ax); Serial.print(",");
+    Serial.print(ay); Serial.print(",");
+    Serial.print(az); Serial.print(",");
+    Serial.print(gx); Serial.print(",");
+    Serial.print(gy); Serial.print(",");
+    Serial.println(gz);
+
 	// Use printf and manually added a \n here. The server code splits on LF only, and using println/
 	// printlnf adds both a CR and LF. It's easier to parse with LF only, and it saves a byte when
 	// transmitting.
-	client.printf("%.3f,%.3f,%.3f,%.3f,%.2f,%.1f\n",
-			AcX, AcY, AcZ,
-			GyX, GyY, Tmp/340.00+36.53);
+//	client.printf("%.3f,%.3f,%.3f,%.3f,%.2f,%.1f\n",
+	client.printf("%d,%d,%d,%d,%d,%d\n",
+			ax, ay, az,
+			gx, gy, gz);
+//	client.printf("0.000,-0.449,-49.091,263.317,982.02,27.5\n");
 
+	//client.printf("%.3f,%.3f,%.3f,%.3f,%.2f,%.1f\n",
+	//		orientation.roll, orientation.pitch, orientation.heading,
+	//		altitude, bmp_event.pressure, temperature);
+	
 	// roll,pitch,heading,altitude,pressure,temperature
 	// Example:
 	// 0.000,-0.449,-49.091,263.317,982.02,27.5
 	// -0.224,-0.224,-48.955,262.719,982.09,27.5
 	// 0.000,-0.449,-48.704,262.719,982.09,27.5
 	// 0.000,-0.449,-48.704,262.890,982.07,27.5
+	
+	// blink LED to indicate activity
+    blinkState = !blinkState;
+    digitalWrite(LED_PIN, blinkState);
 }
 
 
-void sendData_old(void) {
-	// Called periodically when connected via TCP to the server to update data.
-	// Unlike Particle.publish you can push a very large amount of data through this connection,
-	// theoretically up to about 800 Kbytes/sec, but really you should probably shoot for something
-	// lower than that, especially with the way connection is being served in the node.js server.
-
-
-	// Taken from the Adafruit 10-DOF example code
-	sensors_event_t accel_event;
-	sensors_event_t mag_event;
-	sensors_event_t bmp_event;
-	sensors_vec_t   orientation;
-
-	// Read the accelerometer and magnetometer
-	accel.getEvent(&accel_event);
-	mag.getEvent(&mag_event);
-
-	// Use the new fusionGetOrientation function to merge accel/mag data
-	if (!dof.fusionGetOrientation(&accel_event, &mag_event, &orientation)) {
-		// Failed to get data
-		return;
-	}
-	// float orientation.roll
-	// float orientation.pitch
-	// float orientation.heading
-
-	// Calculate the altitude using the barometric pressure sensor
-	bmp.getEvent(&bmp_event);
-	if (!bmp_event.pressure) {
-		// Failed to get pressure
-		return;
-	}
-	// Get ambient temperature in C
-	float temperature;
-	bmp.getTemperature(&temperature);
-
-	float altitude = bmp.pressureToAltitude(seaLevelPressure, bmp_event.pressure, temperature);
-
-	// Use printf and manually added a \n here. The server code splits on LF only, and using println/
-	// printlnf adds both a CR and LF. It's easier to parse with LF only, and it saves a byte when
-	// transmitting.
-	client.printf("%.3f,%.3f,%.3f,%.3f,%.2f,%.1f\n",
-			orientation.roll, orientation.pitch, orientation.heading,
-			altitude, bmp_event.pressure, temperature);
-
-	// roll,pitch,heading,altitude,pressure,temperature
-	// Example:
-	// 0.000,-0.449,-49.091,263.317,982.02,27.5
-	// -0.224,-0.224,-48.955,262.719,982.09,27.5
-	// 0.000,-0.449,-48.704,262.719,982.09,27.5
-	// 0.000,-0.449,-48.704,262.890,982.07,27.5
-}
 
 int devicesHandler(String data) {
 	Serial.printlnf("devicesHandler data=%s", data.c_str());
