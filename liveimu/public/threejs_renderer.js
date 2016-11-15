@@ -1,14 +1,6 @@
-﻿// Global scene object
-var scene;
-
-// Global camera object
-var camera;
-
-// Global mesh object of the pyramid
-var pyramidMesh;
-
-// Global mesh object of the cube
-var cubeMesh;
+﻿var scene; // Global scene object
+var camera; // Global camera object
+var cubeMesh; // Global mesh object of the cube
 
 $(function () {
     // Initialize the scene
