@@ -1,7 +1,7 @@
 <html>
 
 <head>
-    <title>Live IMU - 3D Example</title>
+    <title>Live telemetry</title>
     <script type="text/javascript" src="jquery.js"></script>
     <link rel="stylesheet" type="text/css" href="main.css" />
     <style>
@@ -34,7 +34,8 @@
 
 <body>
     <div class="button" id="pauseChart">pause</div>
-    <div class="graph"></div>
+    <div id="lineGraph" class="graph"></div>
+    <div id="rotationGraph"></div>
     <div class="button" id="pauseTable">pause</div>
     <div id="tableDiv">
         <table id="dataTable">
@@ -99,12 +100,10 @@
 
                 var source = new EventSource('data');
                 source.addEventListener('message', function (e) {
-                    // e.data is the SSE data
-                    //console.log(">>", e);
-
                     // Split the comma-separated list of values into an array of values
-                    tick((Date.now() + ',' + e.data).split(","));
-
+                    var data = e.data.split(",").map(function (d) { return Number(d) || null });
+                    data.unshift(Date.now());
+                    tick(data);
                 }, false);
             }
             else {
@@ -128,14 +127,15 @@
 
         var line = d3.svg.line()
             .interpolate('basis')
+            .defined(function(d) { return !isNaN(d[1]); })
             .x(function (d, i) {
                 return x(d[0]);
             })
             .y(function (d) {
-                return y(isNumeric(d[1]) ? d[1] : 0);
+                return y(d[1]);
             })
 
-        var svg = d3.select('.graph').append('svg')
+        var svg = d3.select('#lineGraph').append('svg')
             .attr('class', 'chart')
             .attr('width', width)
             .attr('height', height + 50)
@@ -184,12 +184,15 @@
                     var time = parseInt(data[0]);
                     timeStamps.push(time);
                     timeStamps.shift();
+                    
+                    var currData = {};
 
                     // Add new values
                     for (i = 1; i < groupNames.length; i++) {
                         var name = groupNames[i];
+                        currData[name] = data[i];
                         var group = groups[name];
-                        group.data.push([time, parseInt(data[i])]);
+                        group.data.push([time, data[i]]);
                         group.path.attr('d', line);
                     }
 
@@ -202,7 +205,22 @@
                         var group = groups[name]
                         group.data.shift()
                     }
+
+
+                    // lasketaan asento
+
+                    var R = Math.sqrt(Math.pow(currData.AccelX, 2) + Math.pow(currData.AccelY, 2) + Math.pow(currData.AccelZ, 2));
+                    var Arx = Math.acos(currData.AccelX / R) * 180 / Math.PI;
+                    var Ary = Math.acos(currData.AccelY / R) * 180 / Math.PI;
+                    var Arz = Math.acos(currData.AccelZ / R) * 180 / Math.PI;
+                    
+                    $("#rotationGraph").text(
+                        "X" + Math.round(Arx) + " | " +
+                        "Y" + Math.round(Ary) + " | " +
+                        "Z" + Math.round(Arz)
+                    );
                 }
+
             }
 
         }
