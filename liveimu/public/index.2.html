@@ -1,184 +1,198 @@
 <html>
 
 <head>
-	<title>Live IMU - 3D Example</title>
-	<script type="text/javascript" src="jquery.js"></script>
-	<script type="text/javascript" src="main.1.js"></script>
-	<link rel="stylesheet" type="text/css" href="main.css" />
-	<style>
+    <title>Live IMU - 3D Example</title>
+    <script type="text/javascript" src="jquery.js"></script>
+    <script type="text/javascript" src="main.1.js"></script>
+    <link rel="stylesheet" type="text/css" href="main.css" />
+    <style>
         .graph .axis {
             stroke-width: 1;
         }
 
-        .graph .axis .tick line {
-            stroke: black;
-        }
+            .graph .axis .tick line {
+                stroke: black;
+            }
 
-        .graph .axis .tick text {
-            fill: black;
-            font-size: 0.7em;
-        }
+            .graph .axis .tick text {
+                fill: black;
+                font-size: 0.7em;
+            }
 
-        .graph .axis .domain {
-            fill: none;
-            stroke: black;
-        }
+            .graph .axis .domain {
+                fill: none;
+                stroke: black;
+            }
 
         .graph .group {
             fill: none;
             stroke: black;
             stroke-width: 1.5;
         }
-	</style>
-	<script src="//d3js.org/d3.v3.min.js"></script>
+    </style>
+    <script src="//d3js.org/d3.v3.min.js"></script>
 </head>
 
 <body>
-	<div class="graph"></div>
-	<div class="button" id="addData">lis√§√§</div>
-	<div id="tableDiv">
-		<table id="dataTable">
-			<thead>
-				<tr>
-					<th class="dataCell">Accel X</th>
-					<th class="dataCell">Accel Y</th>
-					<th class="dataCell">Accel Z</th>
-					<th class="dataCell">Rotation X</th>
-					<th class="dataCell">Rotation Y</th>
-					<th class="dataCell">Rotation Z</th>
-				</tr>
-			</thead>
-			<tbody>
-			</tbody>
-		</table>
-	</div>
-	<script>
-		$(function() {
+    <div class="graph"></div>
+    <div class="button" id="pause">Pause</div>
+    <div id="tableDiv">
+        <table id="dataTable">
+            <thead>
+                <tr>
+                    <th class="dataCell">Accel X</th>
+                    <th class="dataCell">Accel Y</th>
+                    <th class="dataCell">Accel Z</th>
+                    <th class="dataCell">Rotation X</th>
+                    <th class="dataCell">Rotation Y</th>
+                    <th class="dataCell">Rotation Z</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <script>
+        var groupNames = ['Timestamp', 'AccelX', 'AccelY', 'AccelZ', 'RotationX', 'RotationY', 'RotationZ'];
+        var TIMESTAMP = 'Timestamp';
 
-			$("#addData").click(function(){
-				// push a new data point onto the back
-				data.push({
-					AccelX: 2,
-					AccelY: 1.5,
-					AccelZ: 1,
-					RotationX: -1,
-					RotationY: -1.5,
-					RotationZ: -2,
-					date: Date(Date.now())
-				});
+        var c10 = d3.scale.category10();
 
-				// redraw the line, and then slide it to the left
-				// path
-				// 	.attr("d", line)
-				// 	.attr("transform", null)
-				// .transition()
-				// 	.attr("transform", "translate(" + x(-1) + ")");
+        var samples = 500;
+        var timeStamps = Array(samples);
+        var time = new Date();
+        timeStamps.fill(time.getTime());
 
-				// pop the old data point off the front
-				data.shift();
-			})
-		});
+        var pause = false;
 
-			var groupNames = ['AccelX' ,'AccelY','AccelZ','RotationX','RotationY','RotationZ'];
+        var width = 500,
+            height = 200;
 
-			var c10 = d3.scale.category10();
+        var groups = {};
+        for (i = 0; i < groupNames.length ; i++) {
+            groups[groupNames[i]] = {
+                value: 0,
+                color: c10(i),
+                data: Array(samples).fill([time, 0])
+            };
+        }
 
-			var limit = 60 * 1,
-				duration = 750,
-				now = new Date(Date.now() - duration)
+        $(function () {
 
-			var width = 500,
-				height = 200;
+            $("#pause").click(function () {
+                pause = !pause;
+                if (pause) {
+                    $("#pause").text("resume")
+                } else {
+                    $("#pause").text("pause")
+                }
+            })
+            // kirjoitetaan sarakeotsikot
+            $("#dataTable thead tr").html(groupNames.map(function (d) { return "<th>" + d + "</th>"; }).join(""))
+        });
 
-			var groups = {};
-			for(i = 0; i<groupNames.length ; i++) {
-				groups[groupNames[i]] = { 
-					value : 0,
-					color : c10(i),
-					data: d3.range(limit).map(function() {
-						return 0
-					})
-				};
-			}
 
-			var x = d3.time.scale()
-				.domain([now - (limit - 2), now - duration])
-				.range([0, width])
 
-			var y = d3.scale.linear()
-				.domain([-20000, 20000])
-				.range([height, 0])
+        var x = d3.time.scale()
+            .domain([timeStamps[0], timeStamps[timeStamps.length - 1]])
+            .range([0, width]);
 
-			var line = d3.svg.line()
-				.interpolate('basis')
-				.x(function(d, i) {
-					return x(now - (limit - 1 - i) * duration)
-				})
-				.y(function(d) {
-					return y(d)
-				})
+        var y = d3.scale.linear()
+            .domain([-20000, 20000])
+            .range([height, 0])
 
-			var svg = d3.select('.graph').append('svg')
-				.attr('class', 'chart')
-				.attr('width', width)
-				.attr('height', height + 50)
+        var line = d3.svg.line()
+            .interpolate('basis')
+            .x(function (d, i) {
+                return x(d[0])
+            })
+            .y(function (d) {
+                return y(d[1]);
+            })
 
-			var axis = svg.append('g')
-				.attr('class', 'x axis')
-				.attr('transform', 'translate(0,' + height + ')')
-				.call(x.axis = d3.svg.axis().scale(x).orient('bottom'))
+        var svg = d3.select('.graph').append('svg')
+            .attr('class', 'chart')
+            .attr('width', width)
+            .attr('height', height + 50)
 
-			var paths = svg.append('g')
+        var axis = svg.append('g')
+            .attr('class', 'x axis')
+            .attr('transform', 'translate(0,' + height + ')')
+            .call(x.axis = d3.svg.axis().scale(x).orient('bottom'))
 
-			for (var name in groups) {
-				var group = groups[name]
-				group.path = paths.append('path')
-					.data([group.data])
-					.attr('class', name + ' group')
-					.style('stroke', group.color)
-			}
+        var paths = svg.append('g')
 
-			function tick(data) {
-				now = new Date();
-				if(data.length == groupNames.length) {
-					// Add new values
-					for(i=0;i<groupNames.length;i++){
-					// for (var name in groups) {
-						var name = groupNames[i];
-						var group = groups[name];
-						//group.data.push(group.value) // Real values arrive at irregular intervals
-						// group.data.push(20 + Math.random() * 100)
-						group.data.push(data[i]);
-						group.path.attr('d', line);
-					}
+        for (var name in groups) {
+            var group = groups[name]
+            group.path = paths.append('path')
+                .data([group.data])
+                .attr('class', name + ' group')
+                .style('stroke', group.color)
+        }
+        /** @description Updates the screen with new data
+         * @param {data} Array of integer values
+         * @return {null} Nothing
+         */
+        function tick(data) {
+            if (!pause) {
+                if (data && data.length == groupNames.length) {
+                    // p‰ivitet‰‰n taulukko
 
-					// Shift domain
-					x.domain([now - (limit - 2) * duration, now - duration])
+                    var rowCount = $('#dataTable > tbody > tr').length;
+                    if ((rowCount + 1) >= rowsToKeep) {
+                        // After adding rows, there will be too many, remove last
+                        $('#dataTable > tbody > tr:last').remove();
+                    }
+                    // Prepare a row
+                    var html = '<tr>';
+                    for (var ii = 0; ii < data.length; ii++) {
+                        html += '<td>' + data[ii] + '</td>';
+                    }
+                    html += '</tr>';
 
-					// Slide x-axis left
-					axis.transition()
-						.duration(duration)
-						.ease('linear')
-						.call(x.axis)
+                    // Insert at the beginning
+                    $(html).prependTo("#dataTable > tbody");
 
-					// Slide paths left
-					paths.attr('transform', null)
-						.transition()
-						.duration(duration)
-						.ease('linear')
-						.attr('transform', 'translate(' + x(now - (limit - 1) * duration) + ')')
-						.each('end', tick)
+                    // p‰ivitet‰‰n kuvaaja
+                    now = new Date();
+                    // update Timestamps
+                    var time = parseInt(data[0]);
+                    timeStamps.push(time);
+                    timeStamps.shift();
 
-					// Remove oldest data point from each group
-					for (var name in groups) {
-						var group = groups[name]
-						group.data.shift()
-					}
-				}
-			}
+                    // Add new values
+                    for (i = 1; i < groupNames.length; i++) {
+                        var name = groupNames[i];
+                        var group = groups[name];
+                        group.data.push([time, parseInt(data[i])]);
+                        group.path.attr('d', line);
+                    }
 
-        	//tick();
-	</script>
+                    // Shift domain
+                    x.domain([timeStamps[0], time]);
+
+                    //// Slide x-axis left
+                    //axis.transition()
+                    //    .duration(duration)
+                    //    .ease('linear')
+                    //    .call(x.axis)
+                    axis.call(x.axis);
+                    // Slide paths left
+                    //paths.attr('transform', null)
+                    //    .transition()
+                    //    .duration(duration)
+                    //    .ease('linear')
+                    //    .attr('transform', 'translate(' + x(now - (limit - 1) * duration) + ')')
+                    //    .each('end', tick)
+
+                    // Remove oldest data point from each group
+                    for (var name in groups) {
+                        var group = groups[name]
+                        group.data.shift()
+                    }
+                }
+            }
+        }
+    </script>
 
 </body>
 

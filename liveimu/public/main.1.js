@@ -16,7 +16,7 @@ $(document).ready(function() {
 			//console.log(">>", e);
 
 			// Split the comma-separated list of values into an array of values
-            handleData(e.data.split(","));
+            handleData((Date.now() + ',' + e.data).split(","));
             
 		}, false);
 	}
@@ -28,23 +28,7 @@ $(document).ready(function() {
 
 
 function handleData(array) {
-	
-	var rowCount = $('#dataTable > tbody > tr').length;
-	if ((rowCount + 1) >= rowsToKeep) {
-		// After adding rows, there will be too many, remove last
-		$('#dataTable > tbody > tr:last').remove();
-	}
-	// Prepare a row
-	var html = '<tr>';
-	for(var ii = 0; ii < array.length; ii++) {
-		html += '<td>' + array[ii] + '</td>';
-	}	
-	html += '</tr>';
-	
-	// Insert at the beginning
-	$(html).prependTo("#dataTable > tbody");
 	tick(array);
-	
 }
 
 
