@@ -2,6 +2,8 @@
 
 <head>
     <title>Live telemetry</title>
+    <!-- The following meta line optimizes the site for mobile devices. It sets the viewport size to the screen size, so it will be displayed maximized, but unscaled. -->
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1">
     <script type="text/javascript" src="jquery.js"></script>
     <link rel="stylesheet" type="text/css" href="main.css" />
     <style>
@@ -30,9 +32,12 @@
         }
     </style>
     <script src="//d3js.org/d3.v3.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r69/three.js"></script>
+    <script src="threejs_renderer.js"></script>
 </head>
 
 <body>
+    <div id="WebGLCanvas"></div>
     <div class="button" id="pauseChart">pause</div>
     <div id="lineGraph" class="graph"></div>
     <div id="rotationGraph"></div>
@@ -127,7 +132,7 @@
 
         var line = d3.svg.line()
             .interpolate('basis')
-            .defined(function(d) { return !isNaN(d[1]); })
+            .defined(function (d) { return !isNaN(d[1]); })
             .x(function (d, i) {
                 return x(d[0]);
             })
@@ -184,7 +189,7 @@
                     var time = parseInt(data[0]);
                     timeStamps.push(time);
                     timeStamps.shift();
-                    
+
                     var currData = {};
 
                     // Add new values
@@ -213,12 +218,13 @@
                     var Arx = Math.acos(currData.AccelX / R) * 180 / Math.PI;
                     var Ary = Math.acos(currData.AccelY / R) * 180 / Math.PI;
                     var Arz = Math.acos(currData.AccelZ / R) * 180 / Math.PI;
-                    
+
                     $("#rotationGraph").text(
                         "X" + Math.round(Arx) + " | " +
                         "Y" + Math.round(Ary) + " | " +
                         "Z" + Math.round(Arz)
                     );
+                    rotateCube(Arx, Ary, Arz);
                 }
 
             }
