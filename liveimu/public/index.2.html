@@ -3,7 +3,6 @@
 <head>
     <title>Live IMU - 3D Example</title>
     <script type="text/javascript" src="jquery.js"></script>
-    <script type="text/javascript" src="main.1.js"></script>
     <link rel="stylesheet" type="text/css" href="main.css" />
     <style>
         .graph .axis {
@@ -34,8 +33,9 @@
 </head>
 
 <body>
+    <div class="button" id="pauseChart">pause</div>
     <div class="graph"></div>
-    <div class="button" id="pause">Pause</div>
+    <div class="button" id="pauseTable">pause</div>
     <div id="tableDiv">
         <table id="dataTable">
             <thead>
@@ -58,11 +58,13 @@
         var c10 = d3.scale.category10();
 
         var samples = 500;
+        var rowsToKeep = 10;
         var timeStamps = Array(samples);
         var time = new Date();
         timeStamps.fill(time.getTime());
 
-        var pause = false;
+        var pauseTable = false;
+        var pauseChart = false;
 
         var width = 500,
             height = 200;
@@ -76,16 +78,39 @@
             };
         }
 
+        function isNumeric(n) {
+            return !isNaN(parseFloat(n)) && isFinite(n);
+        }
+
         $(function () {
 
-            $("#pause").click(function () {
-                pause = !pause;
-                if (pause) {
-                    $("#pause").text("resume")
+            $("#pauseTable,#pauseChart").click(function (e) {
+                window[this.id] = !window[this.id];
+                if (window[this.id]) {
+                    $(this).text("resume")
                 } else {
-                    $("#pause").text("pause")
+                    $(this).text("pause")
                 }
             })
+
+            if (!!window.EventSource) {
+                // Good example on using SSE
+                // http://www.html5rocks.com/en/tutorials/eventsource/basics/
+
+                var source = new EventSource('data');
+                source.addEventListener('message', function (e) {
+                    // e.data is the SSE data
+                    //console.log(">>", e);
+
+                    // Split the comma-separated list of values into an array of values
+                    tick((Date.now() + ',' + e.data).split(","));
+
+                }, false);
+            }
+            else {
+                console.log('sse not supported');
+            }
+
             // kirjoitetaan sarakeotsikot
             $("#dataTable thead tr").html(groupNames.map(function (d) { return "<th>" + d + "</th>"; }).join(""))
         });
@@ -94,6 +119,7 @@
 
         var x = d3.time.scale()
             .domain([timeStamps[0], timeStamps[timeStamps.length - 1]])
+            //.domain([time, new Date(time.getTime() + 2 * 60000)]) // add 5 minutes
             .range([0, width]);
 
         var y = d3.scale.linear()
@@ -103,10 +129,10 @@
         var line = d3.svg.line()
             .interpolate('basis')
             .x(function (d, i) {
-                return x(d[0])
+                return x(d[0]);
             })
             .y(function (d) {
-                return y(d[1]);
+                return y(isNumeric(d[1]) ? d[1] : 0);
             })
 
         var svg = d3.select('.graph').append('svg')
@@ -133,10 +159,9 @@
          * @return {null} Nothing
          */
         function tick(data) {
-            if (!pause) {
-                if (data && data.length == groupNames.length) {
+            if (data && data.length == groupNames.length) {
+                if (!pauseTable) {
                     // p‰ivitet‰‰n taulukko
-
                     var rowCount = $('#dataTable > tbody > tr').length;
                     if ((rowCount + 1) >= rowsToKeep) {
                         // After adding rows, there will be too many, remove last
@@ -148,11 +173,12 @@
                         html += '<td>' + data[ii] + '</td>';
                     }
                     html += '</tr>';
-
                     // Insert at the beginning
                     $(html).prependTo("#dataTable > tbody");
+                }
 
-                    // p‰ivitet‰‰n kuvaaja
+                // p‰ivitet‰‰n kuvaaja
+                if (!pauseChart) {
                     now = new Date();
                     // update Timestamps
                     var time = parseInt(data[0]);
@@ -167,22 +193,9 @@
                         group.path.attr('d', line);
                     }
 
-                    // Shift domain
+                    // Shift axis domain and update axis
                     x.domain([timeStamps[0], time]);
-
-                    //// Slide x-axis left
-                    //axis.transition()
-                    //    .duration(duration)
-                    //    .ease('linear')
-                    //    .call(x.axis)
                     axis.call(x.axis);
-                    // Slide paths left
-                    //paths.attr('transform', null)
-                    //    .transition()
-                    //    .duration(duration)
-                    //    .ease('linear')
-                    //    .attr('transform', 'translate(' + x(now - (limit - 1) * duration) + ')')
-                    //    .each('end', tick)
 
                     // Remove oldest data point from each group
                     for (var name in groups) {
@@ -191,6 +204,7 @@
                     }
                 }
             }
+
         }
     </script>
 
