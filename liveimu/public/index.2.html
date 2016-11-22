@@ -30,6 +30,9 @@
             stroke: black;
             stroke-width: 1.5;
         }
+        #WebGLCanvas {
+            width:200px; height:200px;
+        }
     </style>
     <script src="//d3js.org/d3.v3.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r69/three.js"></script>
@@ -58,11 +61,23 @@
         </table>
     </div>
     <script>
+
+        function sensor() {
+            this.AccelerationX = 0;
+            this.AccelerationY = 0;
+            this.AccelerationZ = 0;
+            this.RotationX = 0;
+            this.RotationY = 0;
+            this.RotationZ = 0;
+            this.Pitch = function () {
+            };
+        };
+
         var groupNames = ['Timestamp', 'AccelX', 'AccelY', 'AccelZ', 'RotationX', 'RotationY', 'RotationZ'];
         var TIMESTAMP = 'Timestamp';
 
         var c10 = d3.scale.category10();
-
+        var valueRange = 32768;
         var samples = 500;
         var rowsToKeep = 10;
         var timeStamps = Array(samples);
@@ -127,7 +142,7 @@
             .range([0, width]);
 
         var y = d3.scale.linear()
-            .domain([-20000, 20000])
+            .domain([-valueRange, valueRange])
             .range([height, 0])
 
         var line = d3.svg.line()
