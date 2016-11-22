@@ -31,17 +31,18 @@ function initializeScene() {
     // Set the background color of the renderer to black, with full opacity
     //renderer.setClearColor(0x000000, 1);
 
-    // Get the size of the inner window (content area) to create a full size renderer
-    canvasWidth = window.innerWidth;
-    canvasHeight = window.innerHeight;
 
-    // Set the renderers size to the content areas size
-    renderer.setSize(canvasWidth, canvasHeight);
 
     // Get the DIV element from the HTML document by its ID and append the renderers DOM
     // object to it
-    document.getElementById("WebGLCanvas").appendChild(renderer.domElement);
+    var canvas =  document.getElementById("WebGLCanvas");
+    canvas.appendChild(renderer.domElement);
+    // Get the size of the inner window (content area) to create a full size renderer
+    canvasWidth = canvas.clientWidth;
+    canvasHeight = canvas.clientHeight;
 
+    // Set the renderers size to the content areas size
+    renderer.setSize(canvasWidth, canvasHeight);
     // Create the scene, in which all objects are stored (e. g. camera, lights,
     // geometries, ...)
     scene = new THREE.Scene();
@@ -97,7 +98,7 @@ function initializeScene() {
     // Create a mesh and insert the geometry and the material. Translate the whole mesh
     // by 1.5 on the x axis and by 4 on the z axis and add the mesh to the scene.
     boxMesh = new THREE.Mesh(boxGeometry, boxMaterial);
-    boxMesh.position.set(1.5, 0.0, 4.0);
+    //boxMesh.position.set(1.5, 0.0, 4.0);
     scene.add(boxMesh);
 }
 
