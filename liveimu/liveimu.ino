@@ -13,9 +13,9 @@ const unsigned long REQUEST_WAIT_MS = 10000;
 const unsigned long RETRY_WAIT_MS = 30000;
 const unsigned long SEND_WAIT_MS = 40;
 
+// ---------------------
 // Sensors
-
-
+//
 // Arduino Wire library is required if I2Cdev I2CDEV_ARDUINO_WIRE implementation
 // is used in I2Cdev.h
 #if (I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE) && !defined (SPARK)
@@ -28,9 +28,21 @@ const unsigned long SEND_WAIT_MS = 40;
 // AD0 high = 0x69
 MPU6050 accelgyro;
 //MPU6050 accelgyro(0x69); // <-- use for AD0 high
-
 int16_t ax, ay, az;
 int16_t gx, gy, gz;
+
+const int loopDelay = 10;
+//
+// ---------------------
+// RC-receiver
+//
+int steeringValue; // Here's where we'll keep our channel values
+int throttleValue;
+const int throttlePin = 5;
+const int steeringPin = 6;
+
+//
+// ---------------------
 
 #if defined (SPARK)
 #define LED_PIN D7 // (Spark Core is D7)
@@ -47,6 +59,8 @@ int serverPort;
 char nonce[34];
 TCPClient client;
 bool sensorsInitialized;
+
+// =========================
 
 void setup() {
     // join I2C bus (I2Cdev library doesn't do this automatically)
@@ -93,6 +107,10 @@ void setup() {
     Serial.print(accelgyro.getZGyroOffset()); Serial.print("\t"); // 0
     Serial.print("\n");
     */
+    
+    // set PWM-pins
+    pinMode(throttlePin, INPUT); // Set our input pins as such
+    pinMode(steeringPin, INPUT);
 
     // configure Arduino LED for
     pinMode(LED_PIN, OUTPUT);
@@ -156,8 +174,14 @@ void loop() {
 		}
 		break;
 	}
+	delay(loopDelay);
 }
 void sendData(void){
+    
+    // Read PWM-values
+    steeringValue = pulseIn(throttlePin, HIGH); // Read the pulse width of 
+    throttleValue = pulseIn(steeringPin, HIGH); // each channel
+  
     // read raw accel/gyro measurements from device
     accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 
@@ -172,15 +196,18 @@ void sendData(void){
     Serial.print(az); Serial.print(",");
     Serial.print(gx); Serial.print(",");
     Serial.print(gy); Serial.print(",");
-    Serial.println(gz);
+    Serial.print(gz); Serial.print(",");
+    Serial.print(steeringValue); Serial.print(",");
+    Serial.println(throttleValue);
 
 	// Use printf and manually added a \n here. The server code splits on LF only, and using println/
 	// printlnf adds both a CR and LF. It's easier to parse with LF only, and it saves a byte when
 	// transmitting.
 //	client.printf("%.3f,%.3f,%.3f,%.3f,%.2f,%.1f\n",
-	client.printf("%d,%d,%d,%d,%d,%d\n",
+	client.printf("%d,%d,%d,%d,%d,%d,%d,%d\n",
 			ax, ay, az,
-			gx, gy, gz);
+			gx, gy, gz,
+			steeringValue, throttleValue);
 //	client.printf("0.000,-0.449,-49.091,263.317,982.02,27.5\n");
 
 	//client.printf("%.3f,%.3f,%.3f,%.3f,%.2f,%.1f\n",

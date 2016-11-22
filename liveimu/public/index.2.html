@@ -73,11 +73,11 @@
             };
         };
 
-        var groupNames = ['Timestamp', 'AccelX', 'AccelY', 'AccelZ', 'RotationX', 'RotationY', 'RotationZ'];
+        var groupNames = ['Timestamp', 'AccelX', 'AccelY', 'AccelZ', 'RotationX', 'RotationY', 'RotationZ', 'Steering', 'Throttle'];
         var TIMESTAMP = 'Timestamp';
 
         var c10 = d3.scale.category10();
-        var valueRange = 32768;
+        var valueRange = 2000; //32768;
         var samples = 500;
         var rowsToKeep = 10;
         var timeStamps = Array(samples);
