@@ -77,7 +77,7 @@
         var TIMESTAMP = 'Timestamp';
 
         var c10 = d3.scale.category10();
-        var valueRange = 2000; //32768;
+        var valueRange = 20000; //32768;
         var samples = 500;
         var rowsToKeep = 10;
         var timeStamps = Array(samples);
@@ -122,7 +122,7 @@
                 source.addEventListener('message', function (e) {
                     // Split the comma-separated list of values into an array of values
                     var data = e.data.split(",").map(function (d) { return Number(d) || null });
-                    data.unshift(Date.now());
+                    data.unshift(Date.now()); // Lis‰t‰‰n alkuun vastaanottohetken aikaleima (ei tietty ole aivan tarkka, mutta...)
                     tick(data);
                 }, false);
             }
