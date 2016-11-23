@@ -19,7 +19,7 @@ jatkossa
 ```
 node .\liveimu.js
 ```
-Mene selaimella osoitteeseen: http://localhost:8070/index.2.html
+Mene selaimella osoitteeseen: http://localhost:8070/index.html
 
 --
 
