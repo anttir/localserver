@@ -1,7 +1,7 @@
 ﻿
 Avaa PowerShell, mene hakemistoon:
 ```
-C:\+Ohjelmointi\GitHub\localserver>
+C:\+Ohjelmointi\GitHub\localserver
 ```
 
 Asenna Node-kamat (jos ei ole vielä asennettu):

@@ -7,6 +7,10 @@
     <script type="text/javascript" src="jquery.js"></script>
     <link rel="stylesheet" type="text/css" href="main.css" />
     <style>
+        body {
+            font: 10px sans-serif;
+        }
+
         .graph .axis {
             stroke-width: 1;
         }
@@ -30,9 +34,26 @@
             stroke: black;
             stroke-width: 1.5;
         }
+
         #WebGLCanvas {
-            width:200px; height:200px;
+            width: 200px;
+            height: 200px;
         }
+
+        #TSG .axis path,
+        #TSG .axis line {
+            fill: none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+
+        #TSG .dot {
+            fill: none;
+        }
+
+        /*.dot {
+            stroke: #000;
+        }*/
     </style>
     <script src="//d3js.org/d3.v3.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r69/three.js"></script>
@@ -41,6 +62,7 @@
 
 <body>
     <div id="WebGLCanvas"></div>
+    <svg id="TSG"></svg>
     <div class="button" id="pauseChart">pause</div>
     <div id="lineGraph" class="graph"></div>
     <div id="rotationGraph"></div>
@@ -242,9 +264,123 @@
                     rotateCube(Arx, Ary, Arz);
                 }
 
+                // p‰ivitet‰‰n Scatterplot (kaasu ja ohjaus)
+
+                updatePlotter([[data[groupNames.indexOf("Steering")], data[groupNames.indexOf("Throttle")]]]);
             }
 
         }
+    </script>
+
+    <script>
+        var config = {
+            receiver: {
+                minX: 1000,
+                maxX: 2000,
+                minY: 1000,
+                maxY: 2000
+            }
+        }
+
+        function TSGraph() {
+            this.graph = {};
+            this.margin = { top: 20, right: 20, bottom: 30, left: 40 };
+            this.width = 300 - this.margin.left - this.margin.right;
+            this.height = 300 - this.margin.top - this.margin.bottom;
+
+            this.x = d3.scale.linear()
+                .range([0, this.width])
+                .domain([config.receiver.minX, config.receiver.maxX]);
+
+            this.y = d3.scale.linear()
+                .range([this.height, 0])
+                .domain([config.receiver.minY, config.receiver.maxY]);
+        }
+        var TSG = new TSGraph();
+        //var TSG_graph;
+
+        $(function () {
+            var color = d3.scale.category10();
+
+            var xAxis = d3.svg.axis()
+                .scale(TSG.x)
+                .orient("bottom");
+
+            var yAxis = d3.svg.axis()
+                .scale(TSG.y)
+                .orient("left");
+
+            TSG.graph = d3.select("#TSG")
+                .attr("width", TSG.width + TSG.margin.left + TSG.margin.right)
+                .attr("height", TSG.height + TSG.margin.top + TSG.margin.bottom)
+              .append("g")
+                .attr("transform", "translate(" + TSG.margin.left + "," + TSG.margin.top + ")");
+
+            TSG.graph.append("g")
+                .attr("class", "x axis")
+                .attr("transform", "translate(0," + TSG.height + ")")
+                .call(xAxis)
+              .append("text")
+                .attr("class", "label")
+                .attr("x", TSG.width)
+                .attr("y", -6)
+                .style("text-anchor", "end")
+                .text("Steering");
+
+            TSG.graph.append("g")
+                .attr("class", "y axis")
+                .call(yAxis)
+              .append("text")
+                .attr("class", "label")
+                .attr("transform", "rotate(-90)")
+                .attr("y", 6)
+                .attr("dy", ".71em")
+                .style("text-anchor", "end")
+                .text("Throttle")
+        });
+
+        function updatePlotter(data) {
+
+            // ---------------------
+
+            // JOIN new data with old elements.
+            var dataset = TSG.graph.selectAll(".dot")
+                .data(data, function (d) { return d; });
+
+            // EXIT old elements not present in new data.
+            //dataset.exit()
+            //    .attr("class", "exit")
+
+            // UPDATE old elements present in new data.
+            //dataset.attr("class", "update")
+            //    .attr("y", 0)
+            //    .style("fill-opacity", 1)
+
+            // ENTER new elements present in new data.
+            dataset.enter().append("circle")
+                .attr("class", "enter")
+                .attr("class", "dot")
+                .attr("r", 3.5)
+                .attr("cx", function (d) { return TSG.x(d[0]); })
+                .attr("cy", function (d) { return TSG.y(d[1]); })
+                .style("stroke", "red")
+                .style("stroke-opacity", 1)
+                .transition()
+                .duration(3000)            // n‰kyy 10 s
+                .attr("r", 0)               // pienenee
+                .style("stroke-opacity", 0)   // vaalenee
+                .remove();                    // poistetaan kokonaan
+        };
+        //function createTestData(numValues) {
+        //    dataset = [];  // Initialize empty array
+        //    for (var i = 0; i < numValues; i++) {
+        //        var x = config.receiver.minX + Math.floor(Math.random() * config.receiver.maxX);  // Random int for x
+        //        var y = config.receiver.miny + Math.floor(Math.random() * config.receiver.maxY);  // Random int for y
+        //        dataset.push([x, y]);  // Add new numbers to array
+        //    }
+        //    return dataset;
+        //}
+
     </script>
 
 </body>
