@@ -50,9 +50,10 @@
         #throttleSteeringGraph .dot {
             fill: none;
         }
-        #throttleSteeringGraph .grid {
+
+        #throttleSteeringGraph .grid path {
             fill: none;
-            stroke:#ccc;
+            stroke: #ccc;
             shape-rendering: crispEdges;
         }
 
@@ -75,6 +76,7 @@
     <svg id="throttleSteeringGraph"></svg><br />
     <div class="button" id="btnCalibrateTransmitter">Calibrate</div><span id="calibrationResults"></span><br />
     <div class="button" id="btnCenterTransmitter">Center</div><br />
+    <div class="button" id="btnResetTransmitterData">Reset</div><br />
     <div class="button" id="pauseChart">pause</div>
     <div id="lineGraph" class="graph"></div>
     <div id="rotationGraph"></div>
@@ -318,7 +320,9 @@
         }
 
         function TSGraph() {
+            var gridSize = 5;
             this.graph = {};
+            this.grid = {};
             this.margin = { top: 20, right: 20, bottom: 30, left: 40 };
             this.width = 300 - this.margin.left - this.margin.right;
             this.height = 300 - this.margin.top - this.margin.bottom;
@@ -328,29 +332,85 @@
             this.y = d3.scale.linear()
                 .range([this.height, 0])
                 .domain([0, 100]);
-            getCoords = function (gridSize, width, height) {
+            var getCoords = function (width, height) {
                 var cellSizeX = width / gridSize;
                 var cellSizeY = height / gridSize;
                 var results = [];
                 for (var i = 0; i < gridSize; i++) {
                     for (var j = 0; j < gridSize; j++) {
                         results.push(
-                            [{ x0: i * cellSizeX, y0: j * cellSizeY, x1: (i + 1) * cellSizeX, y1: j * cellSizeY },
-                            { x0: i * cellSizeX, y0: (j + 1) * cellSizeY, x1: (i + 1) * cellSizeX, y1: (j + 1) * cellSizeY }]
+                            {
+                                coords: [{ x0: i * cellSizeX, y0: j * cellSizeY, x1: (i + 1) * cellSizeX, y1: j * cellSizeY },
+                                        { x0: i * cellSizeX, y0: (j + 1) * cellSizeY, x1: (i + 1) * cellSizeX, y1: (j + 1) * cellSizeY }],
+                                count: 1 //100 / (gridSize * gridSize)
+                            }
                         );
                     }
                 }
                 return results;
             };
-            this.bgRectangleCoordinates = getCoords(10, this.width, this.height);
+            this.gridData = getCoords(this.width, this.height);
+            this.resetTransmitterData = function () { this.gridData = getCoords(this.width, this.height); };
             this.areaFunc = d3.svg.area()
                 .interpolate('step')
                 .x0(function (d) { return d.x0; })
                 .x1(function (d) { return d.x1; })
                 .y0(function (d) { return d.y0; })
                 .y1(function (d) { return d.y1; });
+            this.colorFunc = function (x) {
+                return d3.hsl(120, 1, 1 - x);
+            };
+            this.drawGrid = function (data) {
+                var tickTotal = data.map(function (d) { return d.count; }).reduce(function (a, b) { return a + b; }, 0);
+
+                //// JOIN new data with old elements.
+                //var dataset = TSG.graph.select('.grid').selectAll('path')
+                //    .data(data, function (d) { return d; });
+                TSG.graph.selectAll('.grid > *').remove();
+                this.grid = TSG.graph.select('.grid').selectAll('path')
+                    .data(data)
+                    .enter()
+                    .append('path')
+                    .attr("class", "enter")
+                    .attr("class", "cell")
+                    .attr('d', function (d) {
+                        return TSG.areaFunc(d.coords);
+                    })
+                    .style('fill', function (d) {
+                        //return TSG.colorFunc(Math.random());
+                        return TSG.colorFunc(d.count / tickTotal);
+                    })
+                    .transition();
+            }
+            this.setNewGridData = function (data) {
+                if (data[0] >= 0 && data[1] >= 0) {
+                    console.log([Math.floor(data[0] / 100 * gridSize), Math.floor(data[1] / 100 * gridSize)]);
+                    (this.gridData[
+                                   (Math.floor(data[0] / 100 * gridSize) * gridSize)
+                                   + (Math.floor((100-data[1]) / 100 * gridSize))
+                        ].count)++; // lis‰t‰‰n t‰h‰n ruutuun yksi
+                } else {
+                    console.log('invalid data' + JSON.stringify(data));
+                }
+                this.drawGrid(this.gridData);
+            }
+            this.getCalibratedData = function (data) {
+                // skaalataan arvo v‰lille 0-100 ja niin ett‰ keskusta on keskell‰
+                if (data[0] < config.receiver.centerX) {
+                    data[0] = (data[0] - config.receiver.minX) / (config.receiver.centerX - config.receiver.minX) * 50;
+                } else {
+                    data[0] = ((data[0] - config.receiver.centerX) / (config.receiver.maxX - config.receiver.centerX) * 50) + 50;
+                }
+                if (data[1] < config.receiver.centerX) {
+                    data[1] = (data[1] - config.receiver.minY) / (config.receiver.centerY - config.receiver.minY) * 50;
+                } else {
+                    data[1] = ((data[1] - config.receiver.centerY) / (config.receiver.maxY - config.receiver.centerY) * 50) + 50;
+                }
+                return data;
+            }
         }
         var TSG = new TSGraph();
+        var resetTransmitterData = function () { TSG.resetTransmitterData(); }
 
         $(function () {
             var color = d3.scale.category10();
@@ -369,12 +429,8 @@
               .append("g")
                 .attr("transform", "translate(" + TSG.margin.left + "," + TSG.margin.top + ")");
 
-            TSG.graph.selectAll('path')
-                .data(TSG.bgRectangleCoordinates)
-                .enter()
-                .append('path')
-                .attr('d', TSG.areaFunc)
-                .attr('class', 'grid')
+            TSG.graph.append("g").attr("class", "grid");
+            TSG.drawGrid(TSG.gridData);
 
             TSG.graph.append("g")
                 .attr("class", "x axis")
@@ -397,9 +453,12 @@
                 .attr("dy", ".71em")
                 .style("text-anchor", "end")
                 .text("Throttle")
+            TSG.graph.append("g").attr("class", "dots");
 
             $("#btnCalibrateTransmitter").click(function () { calibrateTransmitter(); });
             $("#btnCenterTransmitter").click(function () { centerTransmitter(); });
+            $("#btnResetTransmitterData").click(function () { resetTransmitterData(); });
+
         });
 
         function updatePlotter(data) {
@@ -436,6 +495,7 @@
                     TSG.graph.selectAll(".x.axis").call(TSG.xAxis);
                     TSG.graph.selectAll(".y.axis").call(TSG.yAxis);
                     $("#btnCalibrateTransmitter").text("Calibrate");
+                    TSG.resetTransmitterData();
                 }
             }
             if (isCalibrating == "center") {
@@ -449,28 +509,20 @@
                     config.receiver.centerX = centerData.map(function (x) { return x[0]; }).reduce(function (a, b) { return a + b; }) / centerData.length;
                     config.receiver.centerY = centerData.map(function (x) { return x[1]; }).reduce(function (a, b) { return a + b; }) / centerData.length;
                     $("#btnCenterTransmitter").text("Center" + config.receiver.centerX + "|" + config.receiver.centerY);
+                    TSG.resetTransmitterData();
                 }
             }
-            // map values to -100 - +100 on both axis
+            // map values to 0 - +100 on both axis
             if (isCalibrating != "minMax") {
-                // skaalataan arvo v‰lille 0-100 ja niin ett‰ keskusta on keskell‰
-                if (data[0][0] < config.receiver.centerX) {
-                    data[0][0] = (data[0][0] - config.receiver.minX) / (config.receiver.centerX - config.receiver.minX) * 50;
-                } else {
-                    data[0][0] = ((data[0][0] - config.receiver.centerX) / (config.receiver.maxX - config.receiver.centerX) * 50) + 50;
-                }
-                if (data[0][1] < config.receiver.centerX) {
-                    data[0][1] = (data[0][1] - config.receiver.minY) / (config.receiver.centerY - config.receiver.minY) * 50;
-                } else {
-                    data[0][01] = ((data[0][1] - config.receiver.centerY) / (config.receiver.maxY - config.receiver.centerY) * 50) + 50;
-                }
+                data[0] = TSG.getCalibratedData(data[0]);
+                TSG.setNewGridData(data[0]);
             }
 
             // ---------------------
 
             // JOIN new data with old elements.
-            var dataset = TSG.graph.selectAll(".dot")
-                .data(data, function (d) { return d; });
+            var dataset = TSG.graph.select('.dots').selectAll(".dot")
+                .data(data, function (d) { return d + Math.random() * 0.0001; }); // v‰h‰n hajontaa, jotta jokainen piste piirret‰‰n
 
             // EXIT old elements not present in new data.
             //dataset.exit()
@@ -495,8 +547,6 @@
                 .attr("r", 0)               // pienenee
                 .style("stroke-opacity", 0)   // vaalenee
                 .remove();                    // poistetaan kokonaan
-
-
         };
         //function createTestData(numValues) {
         //    dataset = [];  // Initialize empty array
