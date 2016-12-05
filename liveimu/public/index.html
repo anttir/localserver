@@ -50,6 +50,11 @@
         #throttleSteeringGraph .dot {
             fill: none;
         }
+        #throttleSteeringGraph .grid {
+            fill: none;
+            stroke:#ccc;
+            shape-rendering: crispEdges;
+        }
 
         .button {
             border: 1px solid #eee;
@@ -317,14 +322,33 @@
             this.margin = { top: 20, right: 20, bottom: 30, left: 40 };
             this.width = 300 - this.margin.left - this.margin.right;
             this.height = 300 - this.margin.top - this.margin.bottom;
-
             this.x = d3.scale.linear()
                 .range([0, this.width])
                 .domain([0, 100]);
-
             this.y = d3.scale.linear()
                 .range([this.height, 0])
                 .domain([0, 100]);
+            getCoords = function (gridSize, width, height) {
+                var cellSizeX = width / gridSize;
+                var cellSizeY = height / gridSize;
+                var results = [];
+                for (var i = 0; i < gridSize; i++) {
+                    for (var j = 0; j < gridSize; j++) {
+                        results.push(
+                            [{ x0: i * cellSizeX, y0: j * cellSizeY, x1: (i + 1) * cellSizeX, y1: j * cellSizeY },
+                            { x0: i * cellSizeX, y0: (j + 1) * cellSizeY, x1: (i + 1) * cellSizeX, y1: (j + 1) * cellSizeY }]
+                        );
+                    }
+                }
+                return results;
+            };
+            this.bgRectangleCoordinates = getCoords(10, this.width, this.height);
+            this.areaFunc = d3.svg.area()
+                .interpolate('step')
+                .x0(function (d) { return d.x0; })
+                .x1(function (d) { return d.x1; })
+                .y0(function (d) { return d.y0; })
+                .y1(function (d) { return d.y1; });
         }
         var TSG = new TSGraph();
 
@@ -344,6 +368,13 @@
                 .attr("height", TSG.height + TSG.margin.top + TSG.margin.bottom)
               .append("g")
                 .attr("transform", "translate(" + TSG.margin.left + "," + TSG.margin.top + ")");
+
+            TSG.graph.selectAll('path')
+                .data(TSG.bgRectangleCoordinates)
+                .enter()
+                .append('path')
+                .attr('d', TSG.areaFunc)
+                .attr('class', 'grid')
 
             TSG.graph.append("g")
                 .attr("class", "x axis")
@@ -367,7 +398,7 @@
                 .style("text-anchor", "end")
                 .text("Throttle")
 
-            $("#btnCalibrateTransmitter").click(function () {calibrateTransmitter();});
+            $("#btnCalibrateTransmitter").click(function () { calibrateTransmitter(); });
             $("#btnCenterTransmitter").click(function () { centerTransmitter(); });
         });
 
@@ -400,8 +431,8 @@
                     isCalibrating = "";
                     calibratingEnds = 0;
                     // kuvaaja takaisin normalisoiduksi
-                    TSG.x.domain([0,100]); 
-                    TSG.y.domain([0,100]);
+                    TSG.x.domain([0, 100]);
+                    TSG.y.domain([0, 100]);
                     TSG.graph.selectAll(".x.axis").call(TSG.xAxis);
                     TSG.graph.selectAll(".y.axis").call(TSG.yAxis);
                     $("#btnCalibrateTransmitter").text("Calibrate");
@@ -411,7 +442,7 @@
                 var now = new Date();
                 if (now < calibratingEnds) {
                     $("#btnCenterTransmitter").text((Math.round((calibratingEnds - now) / 100) / 10) + "...");
-                    centerData.push([data[0][0],data[0][1]]);
+                    centerData.push([data[0][0], data[0][1]]);
                 } else {
                     isCalibrating = "";
                     calibratingEnds = 0;
@@ -420,17 +451,19 @@
                     $("#btnCenterTransmitter").text("Center" + config.receiver.centerX + "|" + config.receiver.centerY);
                 }
             }
-
-            // skaalataan arvo välille 0-100 ja niin että keskusta on keskellä
-            if (data[0][0] < config.receiver.centerX) {
-                data[0][0] = (data[0][0] - config.receiver.minX) / (config.receiver.centerX - config.receiver.minX) * 50;
-            } else {
-                data[0][0] = ((data[0][0] - config.receiver.centerX) / (config.receiver.maxX - config.receiver.centerX) * 50) + 50;
-            }
-            if (data[0][1] < config.receiver.centerX) {
-                data[0][1] = (data[0][1] - config.receiver.minY) / (config.receiver.centerY - config.receiver.minY) * 50;
-            } else {
-                data[0][01] = ((data[0][1] - config.receiver.centerY) / (config.receiver.maxY - config.receiver.centerY) * 50) + 50;
+            // map values to -100 - +100 on both axis
+            if (isCalibrating != "minMax") {
+                // skaalataan arvo välille 0-100 ja niin että keskusta on keskellä
+                if (data[0][0] < config.receiver.centerX) {
+                    data[0][0] = (data[0][0] - config.receiver.minX) / (config.receiver.centerX - config.receiver.minX) * 50;
+                } else {
+                    data[0][0] = ((data[0][0] - config.receiver.centerX) / (config.receiver.maxX - config.receiver.centerX) * 50) + 50;
+                }
+                if (data[0][1] < config.receiver.centerX) {
+                    data[0][1] = (data[0][1] - config.receiver.minY) / (config.receiver.centerY - config.receiver.minY) * 50;
+                } else {
+                    data[0][01] = ((data[0][1] - config.receiver.centerY) / (config.receiver.maxY - config.receiver.centerY) * 50) + 50;
+                }
             }
 
             // ---------------------
