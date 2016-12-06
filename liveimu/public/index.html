@@ -1,10 +1,21 @@
-<html>
-
+<!DOCTYPE html>
+<html lang="en">
 <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Live telemetry</title>
     <!-- The following meta line optimizes the site for mobile devices. It sets the viewport size to the screen size, so it will be displayed maximized, but unscaled. -->
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1">
-    <script type="text/javascript" src="jquery.js"></script>
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
     <link rel="stylesheet" type="text/css" href="main.css" />
     <style>
         body {
@@ -68,34 +79,43 @@
     </style>
     <script src="//d3js.org/d3.v3.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r69/three.js"></script>
-    <script src="threejs_renderer.js"></script>
+    <!--<script src="threejs_renderer.js"></script>-->
 </head>
 
 <body>
-    <div id="WebGLCanvas"></div>
-    <svg id="throttleSteeringGraph"></svg><br />
-    <div class="button" id="btnCalibrateTransmitter">Calibrate</div><span id="calibrationResults"></span><br />
-    <div class="button" id="btnCenterTransmitter">Center</div><br />
-    <div class="button" id="btnResetTransmitterData">Reset</div><br />
-    <div class="button" id="pauseChart">pause</div>
-    <div id="lineGraph" class="graph"></div>
-    <div id="rotationGraph"></div>
-    <div class="button" id="pauseTable">pause</div>
-    <div id="tableDiv">
-        <table id="dataTable">
-            <thead>
-                <tr>
-                    <th class="dataCell">Accel X</th>
-                    <th class="dataCell">Accel Y</th>
-                    <th class="dataCell">Accel Z</th>
-                    <th class="dataCell">Rotation X</th>
-                    <th class="dataCell">Rotation Y</th>
-                    <th class="dataCell">Rotation Z</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+    <div class="container">
+        <div class="page-header">
+            <h1>RC logger</h1>
+        </div>
+
+        <!--<div id="WebGLCanvas"></div>-->
+        <svg id="throttleSteeringGraph"></svg>
+        <div class="btn-group-vertical" role="group">
+            <button class="button" id="btnCalibrateTransmitter"><span class="glyphicon glyphicon glyphicon-resize-full" aria-hidden="true"></span> Calibrate</button><span id="calibrationResults"></span><br />
+            <button class="button" id="btnCenterTransmitter">Center</button><br />
+            <button class="button" id="btnResetTransmitterData"><span class="glyphicon glyphicon glyphicon glyphicon-refresh" aria-hidden="true"></span> Reset</button><br />
+            <button class="button" id="pauseChart"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span> pause</button>
+        </div>
+        <div id="lineGraph" class="graph"></div>
+        <div id="rotationGraph"></div>
+        <div class="button" id="pauseTable">pause</div>
+        <div id="tableDiv">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th class="dataCell">Accel X</th>
+                        <th class="dataCell">Accel Y</th>
+                        <th class="dataCell">Accel Z</th>
+                        <th class="dataCell">Rotation X</th>
+                        <th class="dataCell">Rotation Y</th>
+                        <th class="dataCell">Rotation Z</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
+
     <script>
 
         function sensor() {
@@ -264,19 +284,21 @@
                     }
 
 
-                    // lasketaan asento
+                    // lasketaan asento jos 3d k‰ytˆss‰
+                    if (typeof rotateCube != 'undefined') {
+                        var R = Math.sqrt(Math.pow(currData.AccelX, 2) + Math.pow(currData.AccelY, 2) + Math.pow(currData.AccelZ, 2));
+                        var Arx = Math.acos(currData.AccelX / R) * 180 / Math.PI;
+                        var Ary = Math.acos(currData.AccelY / R) * 180 / Math.PI;
+                        var Arz = Math.acos(currData.AccelZ / R) * 180 / Math.PI;
 
-                    var R = Math.sqrt(Math.pow(currData.AccelX, 2) + Math.pow(currData.AccelY, 2) + Math.pow(currData.AccelZ, 2));
-                    var Arx = Math.acos(currData.AccelX / R) * 180 / Math.PI;
-                    var Ary = Math.acos(currData.AccelY / R) * 180 / Math.PI;
-                    var Arz = Math.acos(currData.AccelZ / R) * 180 / Math.PI;
+                        $("#rotationGraph").text(
+                            "X" + Math.round(Arx) + " | " +
+                            "Y" + Math.round(Ary) + " | " +
+                            "Z" + Math.round(Arz)
+                        );
+                        rotateCube(Arx, Ary, Arz);
+                    }
 
-                    $("#rotationGraph").text(
-                        "X" + Math.round(Arx) + " | " +
-                        "Y" + Math.round(Ary) + " | " +
-                        "Z" + Math.round(Arz)
-                    );
-                    rotateCube(Arx, Ary, Arz);
                 }
 
                 // p‰ivitet‰‰n Scatterplot (kaasu ja ohjaus)
@@ -349,7 +371,7 @@
                                 coords: [{ x0: i * cellSizeX, y0: j * cellSizeY, x1: (i + 1) * cellSizeX, y1: j * cellSizeY },
                                         { x0: i * cellSizeX, y0: (j + 1) * cellSizeY, x1: (i + 1) * cellSizeX, y1: (j + 1) * cellSizeY }],
                                 count: 1, //100 / (gridSize * gridSize)
-                                name : "i=" + i + ":j=" +j
+                                name: "i=" + i + ":j=" + j
                             }
                         );
                     }
@@ -368,7 +390,8 @@
                 return d3.hsl(120, 1, 1 - x);
             };
             this.drawGrid = function (data) {
-                var tickTotal = data.map(function (d) { return d.count; }).reduce(function (a, b) { return a + b; }, 0);
+                //var tickTotal = data.map(function (d) { return d.count; }).reduce(function (a, b) { return a + b; }, 0);
+                var tickMax = Math.max.apply(Math, data.map(function (d) { return d.count; }));
                 TSG.graph.selectAll('.grid > *').remove();
                 this.grid = TSG.graph.select('.grid').selectAll('path')
                     .data(data)
@@ -380,7 +403,7 @@
                             return TSG.areaFunc(d.coords);
                         })
                         .style('fill', function (d) {
-                            return TSG.colorFunc(d.count / tickTotal);
+                            return TSG.colorFunc(d.count / tickMax);
                         })
                     .append('text')
                         .style("text-anchor", "middle")
@@ -393,7 +416,7 @@
                                     Math.round(data[0] / 100 * (gridSize - 1)),
                                     gridSize - 1 - Math.round(data[1] / 100 * (gridSize - 1))
                     ];
-                    (this.gridData[(cell[0] * gridSize) + cell[1] ].count)++; // lis‰t‰‰n t‰h‰n ruutuun yksi
+                    (this.gridData[(cell[0] * gridSize) + cell[1]].count)++; // lis‰t‰‰n t‰h‰n ruutuun yksi
                 } else {
                     console.log('invalid data' + JSON.stringify(data));
                 }
