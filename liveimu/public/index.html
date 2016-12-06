@@ -21,7 +21,9 @@
         body {
             font: 10px sans-serif;
         }
-
+        lineGraph {
+            float: left;
+        }
         .graph .axis {
             stroke-width: 1;
         }
@@ -50,7 +52,9 @@
             width: 200px;
             height: 200px;
         }
-
+        #throttleSteeringGraph {
+            float: left;
+        }
         #throttleSteeringGraph .axis path,
         #throttleSteeringGraph .axis line {
             fill: none;
@@ -67,12 +71,6 @@
             stroke: #ccc;
             shape-rendering: crispEdges;
         }
-
-        .button {
-            border: 1px solid #eee;
-            padding: 8px;
-            /*display: inline;*/
-        }
         /*.dot {
             stroke: #000;
         }*/
@@ -87,16 +85,19 @@
         <div class="page-header">
             <h1>RC logger</h1>
         </div>
-
         <!--<div id="WebGLCanvas"></div>-->
         <svg id="throttleSteeringGraph"></svg>
-        <div class="btn-group-vertical" role="group">
-            <button class="button" id="btnCalibrateTransmitter"><span class="glyphicon glyphicon glyphicon-resize-full" aria-hidden="true"></span> Calibrate</button><span id="calibrationResults"></span><br />
-            <button class="button" id="btnCenterTransmitter">Center</button><br />
-            <button class="button" id="btnResetTransmitterData"><span class="glyphicon glyphicon glyphicon glyphicon-refresh" aria-hidden="true"></span> Reset</button><br />
-            <button class="button" id="pauseChart"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span> pause</button>
-        </div>
         <div id="lineGraph" class="graph"></div>
+        <hr>
+        <br style="break:both;">
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary" id="btnCalibrateTransmitter"><span class="glyphicon glyphicon glyphicon-resize-full" aria-hidden="true"></span> Calibrate</button>
+            <button type="button" class="btn btn-primary" id="btnCenterTransmitter">Center</button>
+            <button type="button" class="btn btn-primary" id="btnResetTransmitterData"><span class="glyphicon glyphicon glyphicon glyphicon-refresh" aria-hidden="true"></span> Reset</button>
+            <button type="button" class="btn btn-primary" id="pauseChart"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span> pause</button>
+        </div>
+        <br>
+        Calibration results: <span id="calibrationResults"></span>
         <div id="rotationGraph"></div>
         <div class="button" id="pauseTable">pause</div>
         <div id="tableDiv">
@@ -131,6 +132,7 @@
 
         var groupNames = ['Timestamp', 'AccelX', 'AccelY', 'AccelZ', 'RotationX', 'RotationY', 'RotationZ', 'Steering', 'Throttle'];
         var TIMESTAMP = 'Timestamp';
+        var valuesInUse = ['AccelZ'];
 
         var c10 = d3.scale.category10();
         var valueRange = 20000; //32768;
@@ -143,16 +145,18 @@
         var pauseTable = false;
         var pauseChart = false;
 
-        var width = 500,
+        var width = 800,
             height = 200;
 
         var groups = {};
         for (i = 0; i < groupNames.length ; i++) {
-            groups[groupNames[i]] = {
-                value: 0,
-                color: c10(i),
-                data: Array(samples).fill([time, 0])
-            };
+            // if (valuesInUse.includes(groupNames[i])) {
+                groups[groupNames[i]] = {
+                    value: 0,
+                    color: c10(i),
+                    data: Array(samples).fill([time, 0])
+                };
+            // }
         }
 
         function isNumeric(n) {
@@ -178,7 +182,7 @@
                 source.addEventListener('message', function (e) {
                     // Split the comma-separated list of values into an array of values
                     var data = e.data.split(",").map(function (d) { return Number(d) || null });
-                    data.unshift(Date.now()); // Lisätään alkuun vastaanottohetken aikaleima (ei tietty ole aivan tarkka, mutta...)
+                    data.unshift(Date.now()); // Lisï¿½tï¿½ï¿½n alkuun vastaanottohetken aikaleima (ei tietty ole aivan tarkka, mutta...)
                     tick(data);
                 }, false);
             }
@@ -225,11 +229,13 @@
         var paths = svg.append('g')
 
         for (var name in groups) {
-            var group = groups[name]
-            group.path = paths.append('path')
-                .data([group.data])
-                .attr('class', name + ' group')
-                .style('stroke', group.color)
+            if (valuesInUse.includes(name)) {
+                var group = groups[name]
+                group.path = paths.append('path')
+                    .data([group.data])
+                    .attr('class', name + ' group')
+                    .style('stroke', group.color)
+            }
         }
         /** @description Updates the screen with new data
          * @param {data} Array of integer values
@@ -238,7 +244,7 @@
         function tick(data) {
             if (data && data.length == groupNames.length) {
                 if (!pauseTable) {
-                    // päivitetään taulukko
+                    // pï¿½ivitetï¿½ï¿½n taulukko
                     var rowCount = $('#dataTable > tbody > tr').length;
                     if ((rowCount + 1) >= rowsToKeep) {
                         // After adding rows, there will be too many, remove last
@@ -254,7 +260,7 @@
                     $(html).prependTo("#dataTable > tbody");
                 }
 
-                // päivitetään kuvaaja
+                // pï¿½ivitetï¿½ï¿½n kuvaaja
                 if (!pauseChart) {
 
                     // update Timestamps
@@ -266,11 +272,13 @@
 
                     // Add new values
                     for (i = 1; i < groupNames.length; i++) {
-                        var name = groupNames[i];
-                        currData[name] = data[i];
-                        var group = groups[name];
-                        group.data.push([time, data[i]]);
-                        group.path.attr('d', line);
+                        if (valuesInUse.includes(groupNames[i])) {
+                            var name = groupNames[i];
+                            currData[name] = data[i];
+                            var group = groups[name];
+                            group.data.push([time, data[i]]);
+                            group.path.attr('d', line);
+                        }
                     }
 
                     // Shift axis domain and update axis
@@ -284,7 +292,7 @@
                     }
 
 
-                    // lasketaan asento jos 3d käytössä
+                    // lasketaan asento jos 3d kï¿½ytï¿½ssï¿½
                     if (typeof rotateCube != 'undefined') {
                         var R = Math.sqrt(Math.pow(currData.AccelX, 2) + Math.pow(currData.AccelY, 2) + Math.pow(currData.AccelZ, 2));
                         var Arx = Math.acos(currData.AccelX / R) * 180 / Math.PI;
@@ -301,7 +309,7 @@
 
                 }
 
-                // päivitetään Scatterplot (kaasu ja ohjaus)
+                // pï¿½ivitetï¿½ï¿½n Scatterplot (kaasu ja ohjaus)
 
                 updatePlotter([[data[groupNames.indexOf("Steering")], data[groupNames.indexOf("Throttle")]]]);
             }
@@ -312,12 +320,19 @@
     <script id="trottleSteeringGraphJS">
         var config = {
             receiver: {
-                minX: 1109,
-                maxX: 1837,
-                minY: 981,
-                maxY: 1841,
-                centerX: 1400,
-                centerY: 1721,
+                minX: 1383,
+                maxX: 2101,
+                minY: 1241,
+                maxY: 1897,
+                centerX: 1728,
+                centerY: 1484,
+// Kotivastari
+                // minX: 1109,
+                // maxX: 1837,
+                // minY: 981,
+                // maxY: 1841,
+                // centerX: 1400,
+                // centerY: 1721,
                 //minX: 1000,
                 //maxX: 2000,
                 //minY: 1000,
@@ -416,14 +431,17 @@
                                     Math.round(data[0] / 100 * (gridSize - 1)),
                                     gridSize - 1 - Math.round(data[1] / 100 * (gridSize - 1))
                     ];
-                    (this.gridData[(cell[0] * gridSize) + cell[1]].count)++; // lisätään tähän ruutuun yksi
+                    // ei lisÃ¤tÃ¤ keskiruutuun
+                    (this.gridData[(cell[0] * gridSize) + cell[1]].count)++; // lisï¿½tï¿½ï¿½n tï¿½hï¿½n ruutuun yksi
+                    // if(cell[0] != Math.floor(gridSize/2) && cell[1] != Math.floor(gridSize / 2)) {
+                    // }
                 } else {
                     console.log('invalid data' + JSON.stringify(data));
                 }
                 this.drawGrid(this.gridData);
             }
             this.getCalibratedData = function (data) {
-                // skaalataan arvo välille 0-100 ja niin että keskusta on keskellä
+                // skaalataan arvo vï¿½lille 0-100 ja niin ettï¿½ keskusta on keskellï¿½
                 if (data[0] < config.receiver.centerX) {
                     data[0] = (data[0] - config.receiver.minX) / (config.receiver.centerX - config.receiver.minX) * 50;
                 } else {
@@ -501,13 +519,13 @@
                     if (data[0][1] > config.receiver.maxY) { config.receiver.maxY = data[0][1]; show = "max"; }
                     switch (show) {
                         case "min":
-                            data = [[config.receiver.minX, config.receiver.minY]]; // näytetään maksimit
+                            data = [[config.receiver.minX, config.receiver.minY]]; // nï¿½ytetï¿½ï¿½n maksimit
                             break;
                         case "max":
-                            data = [[config.receiver.maxX, config.receiver.maxY]]; // näytetään maksimit
+                            data = [[config.receiver.maxX, config.receiver.maxY]]; // nï¿½ytetï¿½ï¿½n maksimit
                             break;
                         default:
-                            data = [[(config.receiver.maxX + config.receiver.minX) / 2, (config.receiver.minY + config.receiver.maxY) / 2]]; // näytetään keskikohta
+                            data = [[(config.receiver.maxX + config.receiver.minX) / 2, (config.receiver.minY + config.receiver.maxY) / 2]]; // nï¿½ytetï¿½ï¿½n keskikohta
                     }
                     TSG.x.domain([config.receiver.minX, config.receiver.maxX]);
                     TSG.y.domain([config.receiver.minY, config.receiver.maxY]);
@@ -550,7 +568,7 @@
 
             // JOIN new data with old elements.
             var dataset = TSG.graph.select('.dots').selectAll(".dot")
-                .data(data, function (d) { return d + Math.random() * 0.0001; }); // vähän hajontaa, jotta jokainen piste piirretään
+                .data(data, function (d) { return d + Math.random() * 0.0001; }); // vï¿½hï¿½n hajontaa, jotta jokainen piste piirretï¿½ï¿½n
 
             // EXIT old elements not present in new data.
             //dataset.exit()
@@ -571,7 +589,7 @@
                 .style("stroke", "red")
                 .style("stroke-opacity", 1)
                 .transition()
-                .duration(3000)            // näkyy 10 s
+                .duration(3000)            // nï¿½kyy 10 s
                 .attr("r", 0)               // pienenee
                 .style("stroke-opacity", 0)   // vaalenee
                 .remove();                    // poistetaan kokonaan
