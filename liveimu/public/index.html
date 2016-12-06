@@ -290,12 +290,18 @@
     <script id="trottleSteeringGraphJS">
         var config = {
             receiver: {
-                minX: 1000,
-                maxX: 2000,
-                minY: 1000,
-                maxY: 2000,
-                centerX: 1500,
-                centerY: 1500,
+                minX: 1109,
+                maxX: 1837,
+                minY: 981,
+                maxY: 1841,
+                centerX: 1400,
+                centerY: 1721,
+                //minX: 1000,
+                //maxX: 2000,
+                //minY: 1000,
+                //maxY: 2000,
+                //centerX: 1500,
+                //centerY: 1500,
             }
         }
         var isCalibrating = "";
@@ -320,7 +326,7 @@
         }
 
         function TSGraph() {
-            var gridSize = 5;
+            var gridSize = 9;
             this.graph = {};
             this.grid = {};
             this.margin = { top: 20, right: 20, bottom: 30, left: 40 };
@@ -342,7 +348,8 @@
                             {
                                 coords: [{ x0: i * cellSizeX, y0: j * cellSizeY, x1: (i + 1) * cellSizeX, y1: j * cellSizeY },
                                         { x0: i * cellSizeX, y0: (j + 1) * cellSizeY, x1: (i + 1) * cellSizeX, y1: (j + 1) * cellSizeY }],
-                                count: 1 //100 / (gridSize * gridSize)
+                                count: 1, //100 / (gridSize * gridSize)
+                                name : "i=" + i + ":j=" +j
                             }
                         );
                     }
@@ -371,24 +378,27 @@
                     .data(data)
                     .enter()
                     .append('path')
-                    .attr("class", "enter")
-                    .attr("class", "cell")
-                    .attr('d', function (d) {
-                        return TSG.areaFunc(d.coords);
-                    })
-                    .style('fill', function (d) {
-                        //return TSG.colorFunc(Math.random());
-                        return TSG.colorFunc(d.count / tickTotal);
-                    })
-                    .transition();
+                        .attr("class", "enter")
+                        .attr("class", "cell")
+                        .attr('d', function (d) {
+                            return TSG.areaFunc(d.coords);
+                        })
+                        .style('fill', function (d) {
+                            //return TSG.colorFunc(Math.random());
+                            return TSG.colorFunc(d.count / tickTotal);
+                        })
+                    .append('text')
+                        .style("text-anchor", "middle")
+                        .text(function (d) { return d.name; });
+
             }
             this.setNewGridData = function (data) {
-                if (data[0] >= 0 && data[1] >= 0) {
-                    console.log([Math.floor(data[0] / 100 * gridSize), Math.floor(data[1] / 100 * gridSize)]);
-                    (this.gridData[
-                                   (Math.floor(data[0] / 100 * gridSize) * gridSize)
-                                   + (Math.floor((100-data[1]) / 100 * gridSize))
-                        ].count)++; // lisätään tähän ruutuun yksi
+                if (data[0] >= 0 && data[1] >= 0 && data[0] <= 100 && data[1] <= 100) {
+                    var cell = [
+                                    Math.round(data[0] / 100 * (gridSize - 1)),
+                                    gridSize - 1 - Math.round(data[1] / 100 * (gridSize - 1))
+                    ];
+                    (this.gridData[(cell[0] * gridSize) + cell[1] ].count)++; // lisätään tähän ruutuun yksi
                 } else {
                     console.log('invalid data' + JSON.stringify(data));
                 }
