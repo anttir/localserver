@@ -86,15 +86,15 @@
             <h1>RC logger</h1>
         </div>
         <!--<div id="WebGLCanvas"></div>-->
-        <svg id="throttleSteeringGraph"></svg>
+        <svg id="throttleSteeringGraph" class="graph"></svg>
         <div id="lineGraph" class="graph"></div>
         <hr>
         <br style="break:both;">
         <div class="btn-group">
-            <button type="button" class="btn btn-primary" id="btnCalibrateTransmitter"><span class="glyphicon glyphicon glyphicon-resize-full" aria-hidden="true"></span> Calibrate</button>
-            <button type="button" class="btn btn-primary" id="btnCenterTransmitter">Center</button>
+            <button type="button" class="btn btn-primary" id="btnCalibrateTransmitter"><span class="glyphicon glyphicon glyphicon-fullscreen" aria-hidden="true"></span> Calibrate</button>
+            <button type="button" class="btn btn-primary" id="btnCenterTransmitter"><span class="glyphicon glyphicon-screenshot" aria-hidden="true"></span> Center</button>
             <button type="button" class="btn btn-primary" id="btnResetTransmitterData"><span class="glyphicon glyphicon glyphicon glyphicon-refresh" aria-hidden="true"></span> Reset</button>
-            <button type="button" class="btn btn-primary" id="pauseChart"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span> pause</button>
+            <button type="button" class="btn btn-primary" id="pauseChart"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span> Pause</button>
         </div>
         <br>
         Calibration results: <span id="calibrationResults"></span>
@@ -182,7 +182,7 @@
                 source.addEventListener('message', function (e) {
                     // Split the comma-separated list of values into an array of values
                     var data = e.data.split(",").map(function (d) { return Number(d) || null });
-                    data.unshift(Date.now()); // Lisï¿½tï¿½ï¿½n alkuun vastaanottohetken aikaleima (ei tietty ole aivan tarkka, mutta...)
+                    data.unshift(Date.now()); // Lisätään alkuun vastaanottohetken aikaleima (ei tietty ole aivan tarkka, mutta...)
                     tick(data);
                 }, false);
             }
@@ -244,7 +244,7 @@
         function tick(data) {
             if (data && data.length == groupNames.length) {
                 if (!pauseTable) {
-                    // pï¿½ivitetï¿½ï¿½n taulukko
+                    // päivitetään taulukko
                     var rowCount = $('#dataTable > tbody > tr').length;
                     if ((rowCount + 1) >= rowsToKeep) {
                         // After adding rows, there will be too many, remove last
@@ -260,7 +260,7 @@
                     $(html).prependTo("#dataTable > tbody");
                 }
 
-                // pï¿½ivitetï¿½ï¿½n kuvaaja
+                // päivitetään kuvaaja
                 if (!pauseChart) {
 
                     // update Timestamps
@@ -292,7 +292,7 @@
                     }
 
 
-                    // lasketaan asento jos 3d kï¿½ytï¿½ssï¿½
+                    // lasketaan asento jos 3d käytässä
                     if (typeof rotateCube != 'undefined') {
                         var R = Math.sqrt(Math.pow(currData.AccelX, 2) + Math.pow(currData.AccelY, 2) + Math.pow(currData.AccelZ, 2));
                         var Arx = Math.acos(currData.AccelX / R) * 180 / Math.PI;
@@ -309,7 +309,7 @@
 
                 }
 
-                // pï¿½ivitetï¿½ï¿½n Scatterplot (kaasu ja ohjaus)
+                // päivitetään Scatterplot (kaasu ja ohjaus)
 
                 updatePlotter([[data[groupNames.indexOf("Steering")], data[groupNames.indexOf("Throttle")]]]);
             }
@@ -431,8 +431,8 @@
                                     Math.round(data[0] / 100 * (gridSize - 1)),
                                     gridSize - 1 - Math.round(data[1] / 100 * (gridSize - 1))
                     ];
-                    // ei lisÃ¤tÃ¤ keskiruutuun
-                    (this.gridData[(cell[0] * gridSize) + cell[1]].count)++; // lisï¿½tï¿½ï¿½n tï¿½hï¿½n ruutuun yksi
+                    // ei lisätä keskiruutuun
+                    (this.gridData[(cell[0] * gridSize) + cell[1]].count)++; // lisätään tähän ruutuun yksi
                     // if(cell[0] != Math.floor(gridSize/2) && cell[1] != Math.floor(gridSize / 2)) {
                     // }
                 } else {
@@ -441,7 +441,7 @@
                 this.drawGrid(this.gridData);
             }
             this.getCalibratedData = function (data) {
-                // skaalataan arvo vï¿½lille 0-100 ja niin ettï¿½ keskusta on keskellï¿½
+                // skaalataan arvo välille 0-100 ja niin että keskusta on keskellä
                 if (data[0] < config.receiver.centerX) {
                     data[0] = (data[0] - config.receiver.minX) / (config.receiver.centerX - config.receiver.minX) * 50;
                 } else {
@@ -519,13 +519,13 @@
                     if (data[0][1] > config.receiver.maxY) { config.receiver.maxY = data[0][1]; show = "max"; }
                     switch (show) {
                         case "min":
-                            data = [[config.receiver.minX, config.receiver.minY]]; // nï¿½ytetï¿½ï¿½n maksimit
+                            data = [[config.receiver.minX, config.receiver.minY]]; // näytetään maksimit
                             break;
                         case "max":
-                            data = [[config.receiver.maxX, config.receiver.maxY]]; // nï¿½ytetï¿½ï¿½n maksimit
+                            data = [[config.receiver.maxX, config.receiver.maxY]]; // näytetään maksimit
                             break;
                         default:
-                            data = [[(config.receiver.maxX + config.receiver.minX) / 2, (config.receiver.minY + config.receiver.maxY) / 2]]; // nï¿½ytetï¿½ï¿½n keskikohta
+                            data = [[(config.receiver.maxX + config.receiver.minX) / 2, (config.receiver.minY + config.receiver.maxY) / 2]]; // näytetään keskikohta
                     }
                     TSG.x.domain([config.receiver.minX, config.receiver.maxX]);
                     TSG.y.domain([config.receiver.minY, config.receiver.maxY]);
@@ -568,7 +568,7 @@
 
             // JOIN new data with old elements.
             var dataset = TSG.graph.select('.dots').selectAll(".dot")
-                .data(data, function (d) { return d + Math.random() * 0.0001; }); // vï¿½hï¿½n hajontaa, jotta jokainen piste piirretï¿½ï¿½n
+                .data(data, function (d) { return d + Math.random() * 0.0001; }); // vähän hajontaa, jotta jokainen piste piirretään
 
             // EXIT old elements not present in new data.
             //dataset.exit()
@@ -589,7 +589,7 @@
                 .style("stroke", "red")
                 .style("stroke-opacity", 1)
                 .transition()
-                .duration(3000)            // nï¿½kyy 10 s
+                .duration(3000)            // näkyy 10 s
                 .attr("r", 0)               // pienenee
                 .style("stroke-opacity", 0)   // vaalenee
                 .remove();                    // poistetaan kokonaan
