@@ -369,10 +369,6 @@
             };
             this.drawGrid = function (data) {
                 var tickTotal = data.map(function (d) { return d.count; }).reduce(function (a, b) { return a + b; }, 0);
-
-                //// JOIN new data with old elements.
-                //var dataset = TSG.graph.select('.grid').selectAll('path')
-                //    .data(data, function (d) { return d; });
                 TSG.graph.selectAll('.grid > *').remove();
                 this.grid = TSG.graph.select('.grid').selectAll('path')
                     .data(data)
@@ -384,7 +380,6 @@
                             return TSG.areaFunc(d.coords);
                         })
                         .style('fill', function (d) {
-                            //return TSG.colorFunc(Math.random());
                             return TSG.colorFunc(d.count / tickTotal);
                         })
                     .append('text')
