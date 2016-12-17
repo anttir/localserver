@@ -1,0 +1,26 @@
+{
+  "name": "localserver",
+  "version": "1.0.0",
+  "description": "*Sample node.js server for communicating with a Particle Photon*",
+  "main": "livegraph.js",
+  "dependencies": {
+    "node-persist": "^2.0.7",
+    "yargs": "^6.4.0",
+    "particle-api-js": "^6.4.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anttir/localserver.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/anttir/localserver/issues"
+  },
+  "homepage": "https://github.com/anttir/localserver#readme"
+}
