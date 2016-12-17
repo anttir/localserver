@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+Ôªø<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -182,7 +182,7 @@
                 source.addEventListener('message', function (e) {
                     // Split the comma-separated list of values into an array of values
                     var data = e.data.split(",").map(function (d) { return Number(d) || null });
-                    data.unshift(Date.now()); // Lis‰t‰‰n alkuun vastaanottohetken aikaleima (ei tietty ole aivan tarkka, mutta...)
+                    data.unshift(Date.now()); // Lis√§t√§√§n alkuun vastaanottohetken aikaleima (ei tietty ole aivan tarkka, mutta...)
                     tick(data);
                 }, false);
             }
@@ -244,7 +244,7 @@
         function tick(data) {
             if (data && data.length == groupNames.length) {
                 if (!pauseTable) {
-                    // p‰ivitet‰‰n taulukko
+                    // p√§ivitet√§√§n taulukko
                     var rowCount = $('#dataTable > tbody > tr').length;
                     if ((rowCount + 1) >= rowsToKeep) {
                         // After adding rows, there will be too many, remove last
@@ -260,7 +260,7 @@
                     $(html).prependTo("#dataTable > tbody");
                 }
 
-                // p‰ivitet‰‰n kuvaaja
+                // p√§ivitet√§√§n kuvaaja
                 if (!pauseChart) {
 
                     // update Timestamps
@@ -292,7 +292,7 @@
                     }
 
 
-                    // lasketaan asento jos 3d k‰yt‰ss‰
+                    // lasketaan asento jos 3d k√§yt√§ss√§
                     if (typeof rotateCube != 'undefined') {
                         var R = Math.sqrt(Math.pow(currData.AccelX, 2) + Math.pow(currData.AccelY, 2) + Math.pow(currData.AccelZ, 2));
                         var Arx = Math.acos(currData.AccelX / R) * 180 / Math.PI;
@@ -309,7 +309,7 @@
 
                 }
 
-                // p‰ivitet‰‰n Scatterplot (kaasu ja ohjaus)
+                // p√§ivitet√§√§n Scatterplot (kaasu ja ohjaus)
 
                 updatePlotter([[data[groupNames.indexOf("Steering")], data[groupNames.indexOf("Throttle")]]]);
             }
@@ -431,8 +431,8 @@
                                     Math.round(data[0] / 100 * (gridSize - 1)),
                                     gridSize - 1 - Math.round(data[1] / 100 * (gridSize - 1))
                     ];
-                    // ei lis‰t‰ keskiruutuun
-                    (this.gridData[(cell[0] * gridSize) + cell[1]].count)++; // lis‰t‰‰n t‰h‰n ruutuun yksi
+                    // ei lis√§t√§ keskiruutuun
+                    (this.gridData[(cell[0] * gridSize) + cell[1]].count)++; // lis√§t√§√§n t√§h√§n ruutuun yksi
                     // if(cell[0] != Math.floor(gridSize/2) && cell[1] != Math.floor(gridSize / 2)) {
                     // }
                 } else {
@@ -441,7 +441,7 @@
                 this.drawGrid(this.gridData);
             }
             this.getCalibratedData = function (data) {
-                // skaalataan arvo v‰lille 0-100 ja niin ett‰ keskusta on keskell‰
+                // skaalataan arvo v√§lille 0-100 ja niin ett√§ keskusta on keskell√§
                 if (data[0] < config.receiver.centerX) {
                     data[0] = (data[0] - config.receiver.minX) / (config.receiver.centerX - config.receiver.minX) * 50;
                 } else {
@@ -519,13 +519,13 @@
                     if (data[0][1] > config.receiver.maxY) { config.receiver.maxY = data[0][1]; show = "max"; }
                     switch (show) {
                         case "min":
-                            data = [[config.receiver.minX, config.receiver.minY]]; // n‰ytet‰‰n maksimit
+                            data = [[config.receiver.minX, config.receiver.minY]]; // n√§ytet√§√§n maksimit
                             break;
                         case "max":
-                            data = [[config.receiver.maxX, config.receiver.maxY]]; // n‰ytet‰‰n maksimit
+                            data = [[config.receiver.maxX, config.receiver.maxY]]; // n√§ytet√§√§n maksimit
                             break;
                         default:
-                            data = [[(config.receiver.maxX + config.receiver.minX) / 2, (config.receiver.minY + config.receiver.maxY) / 2]]; // n‰ytet‰‰n keskikohta
+                            data = [[(config.receiver.maxX + config.receiver.minX) / 2, (config.receiver.minY + config.receiver.maxY) / 2]]; // n√§ytet√§√§n keskikohta
                     }
                     TSG.x.domain([config.receiver.minX, config.receiver.maxX]);
                     TSG.y.domain([config.receiver.minY, config.receiver.maxY]);
@@ -568,7 +568,7 @@
 
             // JOIN new data with old elements.
             var dataset = TSG.graph.select('.dots').selectAll(".dot")
-                .data(data, function (d) { return d + Math.random() * 0.0001; }); // v‰h‰n hajontaa, jotta jokainen piste piirret‰‰n
+                .data(data, function (d) { return d + Math.random() * 0.0001; }); // v√§h√§n hajontaa, jotta jokainen piste piirret√§√§n
 
             // EXIT old elements not present in new data.
             //dataset.exit()
@@ -589,7 +589,7 @@
                 .style("stroke", "red")
                 .style("stroke-opacity", 1)
                 .transition()
-                .duration(3000)            // n‰kyy 10 s
+                .duration(3000)            // n√§kyy 10 s
                 .attr("r", 0)               // pienenee
                 .style("stroke-opacity", 0)   // vaalenee
                 .remove();                    // poistetaan kokonaan
