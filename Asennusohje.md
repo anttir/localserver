@@ -5,9 +5,12 @@ C:\+Ohjelmointi\GitHub\localserver
 ```
 
 Asenna Node-kamat (jos ei ole vielä asennettu):
-
 ```
 npm install particle-api-js yargs node-persist
+```
+Nyt kun projektissa on myös package.json, niin riittää npm install
+```
+npm install
 ```
 
 Tallenna Particlen kehitysympäristön salasana:
