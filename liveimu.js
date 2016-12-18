@@ -40,6 +40,7 @@ cloud.addEventHandler('devices', devices);
 var server = require('./lib/server.js');
 server.publicDir = path.join(__dirname, 'liveimu/public');
 server.serverPort = 8070;
+server.serverAddr = "62.78.246.214";
 setup.addModule(server);
 devices.server = server;
 
