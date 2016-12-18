@@ -21,7 +21,7 @@
         body {
             font: 10px sans-serif;
         }
-        lineGraph {
+        #lineGraph {
             float: left;
         }
         .graph .axis {
@@ -45,7 +45,7 @@
         .graph .group {
             fill: none;
             stroke: black;
-            stroke-width: 1.5;
+            stroke-width: 1.5px;
         }
 
         #WebGLCanvas {
@@ -85,11 +85,12 @@
         <div class="page-header">
             <h1>RC logger</h1>
         </div>
-        <!--<div id="WebGLCanvas"></div>-->
-        <svg id="throttleSteeringGraph" class="graph"></svg>
-        <div id="lineGraph" class="graph"></div>
-        <hr>
-        <br style="break:both;">
+        <div>
+            <!--<div id="WebGLCanvas"></div>-->
+            <svg id="throttleSteeringGraph" class="graph"></svg>
+            <div id="lineGraph" class="graph"></div>
+            <hr>
+        </div>
         <div class="btn-group">
             <button type="button" class="btn btn-primary" id="btnCalibrateTransmitter"><span class="glyphicon glyphicon glyphicon-fullscreen" aria-hidden="true"></span> Calibrate</button>
             <button type="button" class="btn btn-primary" id="btnCenterTransmitter"><span class="glyphicon glyphicon-screenshot" aria-hidden="true"></span> Center</button>
@@ -119,7 +120,7 @@
 
     <script>
 
-        function sensor() {
+        function Sensor() {
             this.AccelerationX = 0;
             this.AccelerationY = 0;
             this.AccelerationZ = 0;
@@ -128,14 +129,15 @@
             this.RotationZ = 0;
             this.Pitch = function () {
             };
+            this.valueRange = 20000; //32768;
         };
 
+        var sensor = new Sensor();
         var groupNames = ['Timestamp', 'AccelX', 'AccelY', 'AccelZ', 'RotationX', 'RotationY', 'RotationZ', 'Steering', 'Throttle'];
         var TIMESTAMP = 'Timestamp';
         var valuesInUse = ['AccelZ'];
 
         var c10 = d3.scale.category10();
-        var valueRange = 20000; //32768;
         var samples = 500;
         var rowsToKeep = 10;
         var timeStamps = Array(samples);
@@ -203,7 +205,7 @@
             .range([0, width]);
 
         var y = d3.scale.linear()
-            .domain([-valueRange, valueRange])
+            .domain([-sensor.valueRange, sensor.valueRange])
             .range([height, 0])
 
         var line = d3.svg.line()
@@ -318,50 +320,6 @@
     </script>
 
     <script id="trottleSteeringGraphJS">
-        var config = {
-            receiver: {
-                minX: 1383,
-                maxX: 2101,
-                minY: 1241,
-                maxY: 1897,
-                centerX: 1728,
-                centerY: 1484,
-// Kotivastari
-                // minX: 1109,
-                // maxX: 1837,
-                // minY: 981,
-                // maxY: 1841,
-                // centerX: 1400,
-                // centerY: 1721,
-                //minX: 1000,
-                //maxX: 2000,
-                //minY: 1000,
-                //maxY: 2000,
-                //centerX: 1500,
-                //centerY: 1500,
-            }
-        }
-        var isCalibrating = "";
-        var calibratingEnds = 0;
-        var centerData = [];
-        var calibrateTransmitter = function () {
-            config.receiver.minX = 9999;
-            config.receiver.minY = 9999;
-            config.receiver.maxX = 0;
-            config.receiver.maxY = 0;
-            isCalibrating = "minMax";
-            calibratingEnds = new Date();
-            calibratingEnds.setSeconds(calibratingEnds.getSeconds() + 5);
-        }
-        var centerTransmitter = function () {
-            config.receiver.centerX = 1500;
-            config.receiver.centerY = 1500;
-            isCalibrating = "center";
-            centerData = [];
-            calibratingEnds = new Date();
-            calibratingEnds.setSeconds(calibratingEnds.getSeconds() + 2);
-        }
-
         function TSGraph() {
             var gridSize = 9;
             this.graph = {};
@@ -431,10 +389,11 @@
                                     Math.round(data[0] / 100 * (gridSize - 1)),
                                     gridSize - 1 - Math.round(data[1] / 100 * (gridSize - 1))
                     ];
-                    // ei lisätä keskiruutuun
-                    (this.gridData[(cell[0] * gridSize) + cell[1]].count)++; // lisätään tähän ruutuun yksi
-                    // if(cell[0] != Math.floor(gridSize/2) && cell[1] != Math.floor(gridSize / 2)) {
-                    // }
+                    if (cell[0] == Math.floor(gridSize / 2) && cell[1] == Math.floor(gridSize / 2)) {
+                        // ei lisätä keskiruutuun
+                    } else {
+                        (this.gridData[(cell[0] * gridSize) + cell[1]].count)++; // lisätään tähän ruutuun yksi
+                    }
                 } else {
                     console.log('invalid data' + JSON.stringify(data));
                 }
@@ -454,6 +413,54 @@
                 }
                 return data;
             }
+        }
+
+        var config = {
+            receiver: {
+                // Sanwa MT-4 + B44.3:ssa oleva vastari
+                minX: 1383,
+                maxX: 2101,
+                minY: 1241,
+                maxY: 1897,
+                centerX: 1728,
+                centerY: 1484,
+
+                // Kotivastari
+                // minX: 1109,
+                // maxX: 1837,
+                // minY: 981,
+                // maxY: 1841,
+                // centerX: 1400,
+                // centerY: 1721,
+
+                // Default
+                //minX: 1000,
+                //maxX: 2000,
+                //minY: 1000,
+                //maxY: 2000,
+                //centerX: 1500,
+                //centerY: 1500,
+            }
+        }
+        var isCalibrating = "";
+        var calibratingEnds = 0;
+        var centerData = [];
+        var calibrateTransmitter = function () {
+            config.receiver.minX = 9999;
+            config.receiver.minY = 9999;
+            config.receiver.maxX = 0;
+            config.receiver.maxY = 0;
+            isCalibrating = "minMax";
+            calibratingEnds = new Date();
+            calibratingEnds.setSeconds(calibratingEnds.getSeconds() + 5);
+        }
+        var centerTransmitter = function () {
+            config.receiver.centerX = 1500;
+            config.receiver.centerY = 1500;
+            isCalibrating = "center";
+            centerData = [];
+            calibratingEnds = new Date();
+            calibratingEnds.setSeconds(calibratingEnds.getSeconds() + 2);
         }
         var TSG = new TSGraph();
         var resetTransmitterData = function () { TSG.resetTransmitterData(); }
