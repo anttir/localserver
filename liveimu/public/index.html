@@ -343,7 +343,7 @@
                             {
                                 coords: [{ x0: i * cellSizeX, y0: j * cellSizeY, x1: (i + 1) * cellSizeX, y1: j * cellSizeY },
                                         { x0: i * cellSizeX, y0: (j + 1) * cellSizeY, x1: (i + 1) * cellSizeX, y1: (j + 1) * cellSizeY }],
-                                count: 1, //100 / (gridSize * gridSize)
+                                count: (i == Math.floor(gridSize / 2) && j == Math.floor(gridSize / 2)) ? -1 : 0, //100 / (gridSize * gridSize)
                                 name: "i=" + i + ":j=" + j
                             }
                         );
@@ -360,11 +360,18 @@
                 .y0(function (d) { return d.y0; })
                 .y1(function (d) { return d.y1; });
             this.colorFunc = function (x) {
-                return d3.hsl(120, 1, 1 - x);
+                if (isNaN(x)) {
+                    return d3.rgb(255,255,255); // aluksi kaikkialle valkoinen
+                } else if (x < 0) {
+                    return d3.rgb(220, 220, 220); // keskelle harmaa
+                } else {
+                    var darkestColourLuminosity = 0.4;
+                    return d3.hsl(150, 0.6, 1 - (1 - darkestColourLuminosity) * x); // muualle (sini)vihreän sävy
+                }
             };
             this.drawGrid = function (data) {
                 //var tickTotal = data.map(function (d) { return d.count; }).reduce(function (a, b) { return a + b; }, 0);
-                var tickMax = Math.max.apply(Math, data.map(function (d) { return d.count; }));
+                var tickMax = Math.max.apply(Math, data.map(function (d) { return d.count; })); // suhteutetaan väri aina eniten osumia saaneeseen ruutuun
                 TSG.graph.selectAll('.grid > *').remove();
                 this.grid = TSG.graph.select('.grid').selectAll('path')
                     .data(data)
@@ -386,8 +393,8 @@
             this.setNewGridData = function (data) {
                 if (data[0] >= 0 && data[1] >= 0 && data[0] <= 100 && data[1] <= 100) {
                     var cell = [
-                                    Math.round(data[0] / 100 * (gridSize - 1)),
-                                    gridSize - 1 - Math.round(data[1] / 100 * (gridSize - 1))
+                        Math.round(data[0] / 100 * (gridSize - 1)),
+                        gridSize - 1 - Math.round(data[1] / 100 * (gridSize - 1))
                     ];
                     if (cell[0] == Math.floor(gridSize / 2) && cell[1] == Math.floor(gridSize / 2)) {
                         // ei lisätä keskiruutuun
