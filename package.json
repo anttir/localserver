@@ -4,9 +4,11 @@
   "description": "*Sample node.js server for communicating with a Particle Photon*",
   "main": "livegraph.js",
   "dependencies": {
+    "deasync": "^0.1.9",
+    "external-ip": "^0.2.4",
     "node-persist": "^2.0.7",
-    "yargs": "^6.4.0",
-    "particle-api-js": "^6.4.0"
+    "particle-api-js": "^6.4.0",
+    "yargs": "^6.4.0"
   },
   "devDependencies": {},
   "scripts": {
