@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -161,11 +161,11 @@
         var groups = {};
         for (i = 0; i < groupNames.length ; i++) {
             // if (valuesInUse.includes(groupNames[i])) {
-                groups[groupNames[i]] = {
-                    value: 0,
-                    color: c10(i),
-                    data: Array(samples).fill([time, 0])
-                };
+            groups[groupNames[i]] = {
+                value: 0,
+                color: c10(i),
+                data: Array(samples).fill([time, 0])
+            };
             // }
         }
 
@@ -329,7 +329,7 @@
 
                 // päivitetään Scatterplot (kaasu ja ohjaus)
 
-                updatePlotter([[data[groupNames.indexOf("Steering")], data[groupNames.indexOf("Throttle")]]]);
+                updatePlotter({ s: data[groupNames.indexOf("Steering")], t: data[groupNames.indexOf("Throttle")] });
             }
             requestAnimationFrame(tick);
 
@@ -346,10 +346,10 @@
             this.height = 300 - this.margin.top - this.margin.bottom;
             this.x = d3.scaleLinear()
                 .range([0, this.width])
-                .domain([0, 100]);
+                .domain([-100, 100]);
             this.y = d3.scaleLinear()
                 .range([this.height, 0])
-                .domain([0, 100]);
+                .domain([-100, 100]);
             var getCoords = function (width, height) {
                 var cellSizeX = width / gridSize;
                 var cellSizeY = height / gridSize;
@@ -371,7 +371,7 @@
             this.resetTransmitterData = function () { this.gridData = getCoords(this.width, this.height); };
             this.colorFunc = function (x) {
                 if (isNaN(x)) {
-                    return d3.rgb(255,255,255); // aluksi kaikkialle valkoinen
+                    return d3.rgb(255, 255, 255); // aluksi kaikkialle valkoinen
                 } else if (x < 0) {
                     return d3.rgb(220, 220, 220); // keskelle harmaa
                 } else {
@@ -399,7 +399,7 @@
                         .style('fill', function (d) {
                             return TSG.colorFunc(d.count / tickMax);
                         });
-                
+
                 // Exit
                 gridSelection
                     .exit()
@@ -412,10 +412,13 @@
                     });
             }
             this.setNewGridData = function (data) {
-                if (data[0] >= 0 && data[1] >= 0 && data[0] <= 100 && data[1] <= 100) {
+                // muunnos -100 - 100 => 0-100
+                s = (data.s + 100) / 2;
+                t = (data.t + 100) / 2;
+                if (s >= 0 && t >= 0 && s <= 100 && t <= 100) {
                     var cell = [
-                        Math.round(data[0] / 100 * (gridSize - 1)),
-                        gridSize - 1 - Math.round(data[1] / 100 * (gridSize - 1))
+                        Math.round(s / 100 * (gridSize - 1)),
+                        gridSize - 1 - Math.round(t / 100 * (gridSize - 1))
                     ];
                     if (cell[0] == Math.floor(gridSize / 2) && cell[1] == Math.floor(gridSize / 2)) {
                         // ei lisätä keskiruutuun
@@ -429,16 +432,19 @@
             }
             this.getCalibratedData = function (data) {
                 // skaalataan arvo välille 0-100 ja niin että keskusta on keskellä
-                if (data[0] < config.receiver.centerX) {
-                    data[0] = (data[0] - config.receiver.minX) / (config.receiver.centerX - config.receiver.minX) * 50;
+                if (data.s < config.receiver.centerX) {
+                    data.s = (data.s - config.receiver.minX) / (config.receiver.centerX - config.receiver.minX) * 50;
                 } else {
-                    data[0] = ((data[0] - config.receiver.centerX) / (config.receiver.maxX - config.receiver.centerX) * 50) + 50;
+                    data.s = ((data.s - config.receiver.centerX) / (config.receiver.maxX - config.receiver.centerX) * 50) + 50;
                 }
-                if (data[1] < config.receiver.centerX) {
-                    data[1] = (data[1] - config.receiver.minY) / (config.receiver.centerY - config.receiver.minY) * 50;
+                if (data.t < config.receiver.centerX) {
+                    data.t = (data.t - config.receiver.minY) / (config.receiver.centerY - config.receiver.minY) * 50;
                 } else {
-                    data[1] = ((data[1] - config.receiver.centerY) / (config.receiver.maxY - config.receiver.centerY) * 50) + 50;
+                    data.t = ((data.t - config.receiver.centerY) / (config.receiver.maxY - config.receiver.centerY) * 50) + 50;
                 }
+                // vielä välille -100 - +100
+                data.s = 2 * data.s - 100;
+                data.t = 2 * data.t - 100;
                 return data;
             }
         }
@@ -546,19 +552,19 @@
                 if (now < calibratingEnds) {
                     $("#btnCalibrateTransmitter").text((Math.round((calibratingEnds - now) / 100) / 10) + "...");
                     var show = "";
-                    if (data[0][0] < config.receiver.minX) { config.receiver.minX = data[0][0]; show = "min"; }
-                    if (data[0][0] > config.receiver.maxX) { config.receiver.maxX = data[0][0]; show = "max"; }
-                    if (data[0][1] < config.receiver.minY) { config.receiver.minY = data[0][1]; show = "min"; }
-                    if (data[0][1] > config.receiver.maxY) { config.receiver.maxY = data[0][1]; show = "max"; }
+                    if (data.s < config.receiver.minX) { config.receiver.minX = data.s; show = "min"; }
+                    if (data.s > config.receiver.maxX) { config.receiver.maxX = data.s; show = "max"; }
+                    if (data.t < config.receiver.minY) { config.receiver.minY = data.t; show = "min"; }
+                    if (data.t > config.receiver.maxY) { config.receiver.maxY = data.t; show = "max"; }
                     switch (show) {
                         case "min":
-                            data = [[config.receiver.minX, config.receiver.minY]]; // näytetään maksimit
+                            data = { s: config.receiver.minX, t: config.receiver.minY }; // näytetään maksimit
                             break;
                         case "max":
-                            data = [[config.receiver.maxX, config.receiver.maxY]]; // näytetään maksimit
+                            data = { s: config.receiver.maxX, t: config.receiver.maxY }; // näytetään maksimit
                             break;
                         default:
-                            data = [[(config.receiver.maxX + config.receiver.minX) / 2, (config.receiver.minY + config.receiver.maxY) / 2]]; // näytetään keskikohta
+                            data = { s: (config.receiver.maxX + config.receiver.minX) / 2, t: (config.receiver.minY + config.receiver.maxY) / 2 }; // näytetään keskikohta
                     }
                     TSG.x.domain([config.receiver.minX, config.receiver.maxX]);
                     TSG.y.domain([config.receiver.minY, config.receiver.maxY]);
@@ -581,7 +587,7 @@
                 var now = new Date();
                 if (now < calibratingEnds) {
                     $("#btnCenterTransmitter").text((Math.round((calibratingEnds - now) / 100) / 10) + "...");
-                    centerData.push([data[0][0], data[0][1]]);
+                    centerData.push([data.s, data.t]);
                 } else {
                     isCalibrating = "";
                     calibratingEnds = 0;
@@ -594,16 +600,16 @@
             }
             // map values to 0 - +100 on both axis
             if (isCalibrating != "minMax") {
-                data[0] = TSG.getCalibratedData(data[0]);
-                TSG.setNewGridData(data[0]);
+                data = TSG.getCalibratedData(data);
+                TSG.setNewGridData(data);
             }
 
             // ---------------------
 
             // JOIN new data with old elements.
             var dataset = TSG.graph.select('.dots').selectAll(".dot")
-                .data(data, d => d);
-                //.data(data, function (d) { return d + Math.random() * 0.0001; }); // vähän hajontaa, jotta jokainen piste piirretään
+                //.data([data], d => d);
+                .data([data], function (d) { return d + Math.random() * 0.0001; }); // vähän hajontaa, jotta jokainen piste piirretään
 
             // EXIT old elements not present in new data.
             //dataset.exit()
@@ -613,14 +619,17 @@
             //dataset.attr("class", "update")
             //    .attr("y", 0)
             //    .style("fill-opacity", 1)
+            console.log(data);
 
             // ENTER new elements present in new data.
             dataset.enter().append("circle")
                 .attr("class", "enter")
                 .attr("class", "dot")
                 .attr("r", 3.5)
-                .attr("cx", function (d) { return TSG.x(d[0]); })
-                .attr("cy", function (d) { return TSG.y(d[1]); })
+                //.attr("cx", function (d) { return 25; })
+                //.attr("cy", function (d) { return 40; })
+                .attr("cx", function (d) { return TSG.x(d.s); })
+                .attr("cy", function (d) { return TSG.y(d.t); })
                 .style("stroke", "red")
                 .style("stroke-opacity", 1)
                 .transition()
