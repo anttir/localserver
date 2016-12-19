@@ -48,6 +48,12 @@
             stroke-width: 1.5px;
         }
 
+        .graph rect.cell {
+            stroke: lightgray;
+            stroke-width: 1px;
+            shape-rendering: crispEdges;
+        }
+
         #WebGLCanvas {
             width: 200px;
             height: 200px;
@@ -102,7 +108,7 @@
         <div id="rotationGraph"></div>
         <div class="button" id="pauseTable">pause</div>
         <div id="tableDiv">
-            <table id="dataTable">
+            <table id="dataTable" class="table">
                 <thead>
                     <tr>
                         <th class="dataCell">Accel X</th>
@@ -335,7 +341,6 @@
         function TSGraph() {
             var gridSize = 9;
             this.graph = {};
-            //this.grid = {};
             this.margin = { top: 20, right: 20, bottom: 30, left: 40 };
             this.width = 300 - this.margin.left - this.margin.right;
             this.height = 300 - this.margin.top - this.margin.bottom;
@@ -353,8 +358,7 @@
                     for (var j = 0; j < gridSize; j++) {
                         results.push(
                             {
-                                coords: [{ x0: i * cellSizeX, y0: j * cellSizeY, x1: (i + 1) * cellSizeX, y1: j * cellSizeY },
-                                        { x0: i * cellSizeX, y0: (j + 1) * cellSizeY, x1: (i + 1) * cellSizeX, y1: (j + 1) * cellSizeY }],
+                                coords: { x0: i * cellSizeX, y0: j * cellSizeY, x1: (i + 1) * cellSizeX, y1: (j + 1) * cellSizeY },
                                 count: (i == Math.floor(gridSize / 2) && j == Math.floor(gridSize / 2)) ? -1 : 0, //100 / (gridSize * gridSize)
                                 name: "i=" + i + ":j=" + j
                             }
@@ -365,12 +369,6 @@
             };
             this.gridData = getCoords(this.width, this.height);
             this.resetTransmitterData = function () { this.gridData = getCoords(this.width, this.height); };
-            this.areaFunc = d3.area()
-                .curve(d3.curveStep)
-                .x0(function (d) { return d.x0; })
-                .x1(function (d) { return d.x1; })
-                .y0(function (d) { return d.y0; })
-                .y1(function (d) { return d.y1; });
             this.colorFunc = function (x) {
                 if (isNaN(x)) {
                     return d3.rgb(255,255,255); // aluksi kaikkialle valkoinen
@@ -384,7 +382,6 @@
             this.drawGrid = function (data) {
                 //var tickTotal = data.map(function (d) { return d.count; }).reduce(function (a, b) { return a + b; }, 0);
                 var tickMax = Math.max.apply(Math, data.map(function (d) { return d.count; })); // suhteutetaan väri aina eniten osumia saaneeseen ruutuun
-                //TSG.graph.selectAll('.grid > *').remove();
                 var grid = TSG.graph.select('.grid').selectAll('rect');
                 var gridSelection = grid
                     .data(data);
@@ -395,13 +392,10 @@
                     .append('rect')
                         .attr("class", "enter")
                         .attr("class", "cell")
-                        .attr('x', d => d.coords[0].x0)
-                        .attr('y', d => d.coords[0].y0)
-                        .attr('width', d => d.coords[1].x1 - d.coords[0].x0)
-                        .attr('height', d => d.coords[1].y1 - d.coords[0].y0)
-                        //.attr('d', function (d) {
-                        //    return TSG.areaFunc(d.coords);
-                        //})
+                        .attr('x', d => d.coords.x0)
+                        .attr('y', d => d.coords.y0)
+                        .attr('width', d => d.coords.x1 - d.coords.x0)
+                        .attr('height', d => d.coords.y1 - d.coords.y0)
                         .style('fill', function (d) {
                             return TSG.colorFunc(d.count / tickMax);
                         });
@@ -416,8 +410,6 @@
                     .style('fill', function (d) {
                         return TSG.colorFunc(d.count / tickMax);
                     });
-                    
-
             }
             this.setNewGridData = function (data) {
                 if (data[0] >= 0 && data[1] >= 0 && data[0] <= 100 && data[1] <= 100) {
@@ -458,8 +450,8 @@
                 maxX: 2101,
                 minY: 1241,
                 maxY: 1897,
-                centerX: 1728,
-                centerY: 1484,
+                centerX: 1699,
+                centerY: 1481,
 
                 // Kotivastari
                 // minX: 1109,
@@ -595,7 +587,8 @@
                     calibratingEnds = 0;
                     config.receiver.centerX = centerData.map(function (x) { return x[0]; }).reduce(function (a, b) { return a + b; }) / centerData.length;
                     config.receiver.centerY = centerData.map(function (x) { return x[1]; }).reduce(function (a, b) { return a + b; }) / centerData.length;
-                    $("#btnCenterTransmitter").text("Center" + config.receiver.centerX + "|" + config.receiver.centerY);
+                    $("#btnCenterTransmitter").html("<span class='glyphicon glyphicon-screenshot' aria-hidden='true'></span> Center");
+                    $("#calibrationResults").text("Center: " + config.receiver.centerX + " | " + config.receiver.centerY);
                     TSG.resetTransmitterData();
                 }
             }
