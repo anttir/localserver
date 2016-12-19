@@ -75,7 +75,7 @@
             stroke: #000;
         }*/
     </style>
-    <script src="//d3js.org/d3.v3.min.js"></script>
+    <script src="//d3js.org/d3.v4.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r69/three.js"></script>
     <script src="threejs_renderer.js"></script>
 </head>
@@ -139,7 +139,7 @@
         var TIMESTAMP = 'Timestamp';
         var valuesInUse = ['AccelX', 'AccelY', 'AccelZ'];
 
-        var c10 = d3.scale.category10();
+        var c10 = d3.scaleOrdinal(d3.schemeCategory10);
         var samples = 500;
         var rowsToKeep = 10;
         var timeStamps = Array(samples);
@@ -204,18 +204,18 @@
 
 
         var latest = timeStamps[timeStamps.length - 1];
-        var x = d3.time.scale()
+        var x = d3.scaleTime()
             .domain([latest - 1000 * 15, latest])
             //.domain([time, new Date(time.getTime() + 2 * 60000)]) // add 5 minutes
             .range([0, width])
             .clamp(true);
 
-        var y = d3.scale.linear()
+        var y = d3.scaleLinear()
             .domain([-sensor.valueRange, sensor.valueRange])
             .range([height, 0])
 
-        var line = d3.svg.line()
-            .interpolate('basis')
+        var line = d3.line()
+            .curve(d3.curveBasis)
             .defined(function (d) { return !isNaN(d[1]); })
             .x(function (d, i) {
                 return x(d[0]);
@@ -232,7 +232,7 @@
         var axis = svg.append('g')
             .attr('class', 'x axis')
             .attr('transform', 'translate(0,' + height + ')')
-            .call(x.axis = d3.svg.axis().scale(x).orient('bottom'))
+            .call(x.axis = d3.axisBottom().scale(x))
 
         var paths = svg.append('g')
 
@@ -339,10 +339,10 @@
             this.margin = { top: 20, right: 20, bottom: 30, left: 40 };
             this.width = 300 - this.margin.left - this.margin.right;
             this.height = 300 - this.margin.top - this.margin.bottom;
-            this.x = d3.scale.linear()
+            this.x = d3.scaleLinear()
                 .range([0, this.width])
                 .domain([0, 100]);
-            this.y = d3.scale.linear()
+            this.y = d3.scaleLinear()
                 .range([this.height, 0])
                 .domain([0, 100]);
             var getCoords = function (width, height) {
@@ -365,8 +365,8 @@
             };
             this.gridData = getCoords(this.width, this.height);
             this.resetTransmitterData = function () { this.gridData = getCoords(this.width, this.height); };
-            this.areaFunc = d3.svg.area()
-                .interpolate('step')
+            this.areaFunc = d3.area()
+                .curve(d3.curveStep)
                 .x0(function (d) { return d.x0; })
                 .x1(function (d) { return d.x1; })
                 .y0(function (d) { return d.y0; })
@@ -502,15 +502,13 @@
         var resetTransmitterData = function () { TSG.resetTransmitterData(); }
 
         $(function () {
-            var color = d3.scale.category10();
+            var color = d3.scaleOrdinal(d3.schemeCategory10);
 
-            TSG.xAxis = d3.svg.axis()
-                .scale(TSG.x)
-                .orient("bottom");
+            TSG.xAxis = d3.axisBottom()
+                .scale(TSG.x);
 
-            TSG.yAxis = d3.svg.axis()
-                .scale(TSG.y)
-                .orient("left");
+            TSG.yAxis = d3.axisLeft()
+                .scale(TSG.y);
 
             TSG.graph = d3.select("#throttleSteeringGraph")
                 .attr("width", TSG.width + TSG.margin.left + TSG.margin.right)
