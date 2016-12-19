@@ -1,4 +1,4 @@
-﻿var scene; // Global scene object
+var scene; // Global scene object
 var camera; // Global camera object
 var cubeMesh; // Global mesh object of the cube
 
@@ -7,7 +7,7 @@ $(function () {
     initializeScene();
 
     //// Animate the scene
-    //animateScene();
+    // animateScene();
 })
 /**
  * Initialze the scene.
