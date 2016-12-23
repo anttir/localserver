@@ -135,8 +135,9 @@
             this.RotationZ = 0;
             this.Steering = 0;
             this.Throttle = 0;
-            this.Pitch = function () {
-            };
+            //this.Pitch = 0;
+            //this.Roll = 0;
+            //this.Yaw = 0;
             this.valueRange = 20000; //32768;
             this.GetData = function (data) {
             }
@@ -260,7 +261,7 @@
 
         var latest = timeStamps[timeStamps.length - 1];
         var x = d3.scaleTime()
-            .domain([latest - 1000 * 15, latest])
+            .domain([latest - 1000 * 15, latest]) // viimeiset 15 sekuntia
             //.domain([time, new Date(time.getTime() + 2 * 60000)]) // add 5 minutes
             .range([0, width])
             .clamp(true);
@@ -376,11 +377,9 @@
                 }
 
                 // päivitetään Scatterplot (kaasu ja ohjaus)
-
                 updatePlotter({ s: data[groupNames.indexOf("Steering")], t: data[groupNames.indexOf("Throttle")] });
             }
             requestAnimationFrame(tick);
-
         }
         requestAnimationFrame(tick);
     </script>
