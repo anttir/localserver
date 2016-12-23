@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -133,17 +133,66 @@
             this.RotationX = 0;
             this.RotationY = 0;
             this.RotationZ = 0;
+            this.Steering = 0;
+            this.Throttle = 0;
             this.Pitch = function () {
             };
             this.valueRange = 20000; //32768;
+            this.GetData = function (data) {
+            }
+            this.config = {
+                receiver: {
+                    // Sanwa MT-4 + B44.3:ssa oleva vastari
+                    minX: 1383,
+                    maxX: 2101,
+                    minY: 1241,
+                    maxY: 1897,
+                    centerX: 1699,
+                    centerY: 1481,
+
+                    // Kotivastari
+                    // minX: 1109,
+                    // maxX: 1837,
+                    // minY: 981,
+                    // maxY: 1841,
+                    // centerX: 1400,
+                    // centerY: 1721,
+
+                    // Default
+                    //minX: 1000,
+                    //maxX: 2000,
+                    //minY: 1000,
+                    //maxY: 2000,
+                    //centerX: 1500,
+                    //centerY: 1500,
+                }
+            }
+            this.getCalibratedData = function (data) {
+                // skaalataan arvo välille 0-100 ja niin että keskusta on keskellä
+                var conf = this.config;
+                if (data.s < conf.receiver.centerX) {
+                    data.s = (data.s - conf.receiver.minX) / (conf.receiver.centerX - conf.receiver.minX) * 50;
+                } else {
+                    data.s = ((data.s - conf.receiver.centerX) / (conf.receiver.maxX - conf.receiver.centerX) * 50) + 50;
+                }
+                if (data.t < conf.receiver.centerX) {
+                    data.t = (data.t - conf.receiver.minY) / (conf.receiver.centerY - conf.receiver.minY) * 50;
+                } else {
+                    data.t = ((data.t - conf.receiver.centerY) / (conf.receiver.maxY - conf.receiver.centerY) * 50) + 50;
+                }
+                // vielä välille -100 - +100
+                data.s = 2 * data.s - 100;
+                data.t = 2 * data.t - 100;
+                return data;
+            }
         };
 
         var latestData;
 
         var sensor = new Sensor();
-        var groupNames = ['Timestamp', 'AccelX', 'AccelY', 'AccelZ', 'RotationX', 'RotationY', 'RotationZ', 'Steering', 'Throttle'];
+        var groupNames = ['Timestamp', 'AccelerationX', 'AccelerationY', 'AccelerationZ', 'RotationX', 'RotationY', 'RotationZ', 'Steering', 'Throttle'];
         var TIMESTAMP = 'Timestamp';
-        var valuesInUse = ['AccelX', 'AccelY', 'AccelZ'];
+        var valuesInUse = ['AccelerationX', 'AccelerationY', 'AccelerationZ'];
 
         var c10 = d3.scaleOrdinal(d3.schemeCategory10);
         var samples = 500;
@@ -309,13 +358,12 @@
                     }
                     */
 
-
                     // lasketaan asento jos 3d käytässä
                     if (typeof rotateCube !== 'undefined') {
-                        var R = Math.sqrt(Math.pow(currData.AccelX, 2) + Math.pow(currData.AccelY, 2) + Math.pow(currData.AccelZ, 2));
-                        var Arx = Math.acos(currData.AccelX / R) * 180 / Math.PI;
-                        var Ary = Math.acos(currData.AccelY / R) * 180 / Math.PI;
-                        var Arz = Math.acos(currData.AccelZ / R) * 180 / Math.PI;
+                        var R = Math.sqrt(Math.pow(currData.AccelerationX, 2) + Math.pow(currData.AccelerationY, 2) + Math.pow(currData.AccelerationZ, 2));
+                        var Arx = Math.acos(currData.AccelerationX / R) * 180 / Math.PI;
+                        var Ary = Math.acos(currData.AccelerationY / R) * 180 / Math.PI;
+                        var Arz = Math.acos(currData.AccelerationZ / R) * 180 / Math.PI;
 
                         $("#rotationGraph").text(
                             "X" + Math.round(Arx) + " | " +
@@ -430,67 +478,23 @@
                 }
                 this.drawGrid(this.gridData);
             }
-            this.getCalibratedData = function (data) {
-                // skaalataan arvo välille 0-100 ja niin että keskusta on keskellä
-                if (data.s < config.receiver.centerX) {
-                    data.s = (data.s - config.receiver.minX) / (config.receiver.centerX - config.receiver.minX) * 50;
-                } else {
-                    data.s = ((data.s - config.receiver.centerX) / (config.receiver.maxX - config.receiver.centerX) * 50) + 50;
-                }
-                if (data.t < config.receiver.centerX) {
-                    data.t = (data.t - config.receiver.minY) / (config.receiver.centerY - config.receiver.minY) * 50;
-                } else {
-                    data.t = ((data.t - config.receiver.centerY) / (config.receiver.maxY - config.receiver.centerY) * 50) + 50;
-                }
-                // vielä välille -100 - +100
-                data.s = 2 * data.s - 100;
-                data.t = 2 * data.t - 100;
-                return data;
-            }
         }
 
-        var config = {
-            receiver: {
-                // Sanwa MT-4 + B44.3:ssa oleva vastari
-                minX: 1383,
-                maxX: 2101,
-                minY: 1241,
-                maxY: 1897,
-                centerX: 1699,
-                centerY: 1481,
-
-                // Kotivastari
-                // minX: 1109,
-                // maxX: 1837,
-                // minY: 981,
-                // maxY: 1841,
-                // centerX: 1400,
-                // centerY: 1721,
-
-                // Default
-                //minX: 1000,
-                //maxX: 2000,
-                //minY: 1000,
-                //maxY: 2000,
-                //centerX: 1500,
-                //centerY: 1500,
-            }
-        }
         var isCalibrating = "";
         var calibratingEnds = 0;
         var centerData = [];
         var calibrateTransmitter = function () {
-            config.receiver.minX = 9999;
-            config.receiver.minY = 9999;
-            config.receiver.maxX = 0;
-            config.receiver.maxY = 0;
+            sensor.config.receiver.minX = 9999;
+            sensor.config.receiver.minY = 9999;
+            sensor.config.receiver.maxX = 0;
+            sensor.config.receiver.maxY = 0;
             isCalibrating = "minMax";
             calibratingEnds = new Date();
             calibratingEnds.setSeconds(calibratingEnds.getSeconds() + 5);
         }
         var centerTransmitter = function () {
-            config.receiver.centerX = 1500;
-            config.receiver.centerY = 1500;
+            sensor.config.receiver.centerX = 1500;
+            sensor.config.receiver.centerY = 1500;
             isCalibrating = "center";
             centerData = [];
             calibratingEnds = new Date();
@@ -552,6 +556,7 @@
                 if (now < calibratingEnds) {
                     $("#btnCalibrateTransmitter").text((Math.round((calibratingEnds - now) / 100) / 10) + "...");
                     var show = "";
+                    var config = sensor.config;
                     if (data.s < config.receiver.minX) { config.receiver.minX = data.s; show = "min"; }
                     if (data.s > config.receiver.maxX) { config.receiver.maxX = data.s; show = "max"; }
                     if (data.t < config.receiver.minY) { config.receiver.minY = data.t; show = "min"; }
@@ -575,8 +580,8 @@
                     isCalibrating = "";
                     calibratingEnds = 0;
                     // kuvaaja takaisin normalisoiduksi
-                    TSG.x.domain([0, 100]);
-                    TSG.y.domain([0, 100]);
+                    TSG.x.domain([-100, 100]);
+                    TSG.y.domain([-100, 100]);
                     TSG.graph.selectAll(".x.axis").call(TSG.xAxis);
                     TSG.graph.selectAll(".y.axis").call(TSG.yAxis);
                     $("#btnCalibrateTransmitter").text("Calibrate");
@@ -591,6 +596,7 @@
                 } else {
                     isCalibrating = "";
                     calibratingEnds = 0;
+                    var config = sensor.config;
                     config.receiver.centerX = centerData.map(function (x) { return x[0]; }).reduce(function (a, b) { return a + b; }) / centerData.length;
                     config.receiver.centerY = centerData.map(function (x) { return x[1]; }).reduce(function (a, b) { return a + b; }) / centerData.length;
                     $("#btnCenterTransmitter").html("<span class='glyphicon glyphicon-screenshot' aria-hidden='true'></span> Center");
@@ -600,7 +606,7 @@
             }
             // map values to 0 - +100 on both axis
             if (isCalibrating != "minMax") {
-                data = TSG.getCalibratedData(data);
+                data = sensor.getCalibratedData(data);
                 TSG.setNewGridData(data);
             }
 
